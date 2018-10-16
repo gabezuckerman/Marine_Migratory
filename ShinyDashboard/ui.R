@@ -8,6 +8,7 @@ library(raster)
 library(mapview)
 library(broom)
 library(leaflet)
+library(shinythemes)
 
 #points <- st_read("../../../../Dropbox/ABSK_CWD data/RiskModelUpdate/pts_inextent_UTM12N.shp")
 
@@ -40,7 +41,7 @@ ui <- dashboardPage(
     title="Migratory Marine Animals",
     titleWidth = 300, tags$li(a(href = 'https://www.pewtrusts.org/en/projects/pew-bertarelli-ocean-legacy',
                                 img(src = 'pew.jpg',
-                                    title = "Company Home", height = "30px"),
+                                    title = "Pew Bertarelli Ocean Legacy", height = "30px"),
                                 style = "padding-top:10px; padding-bottom:10px;"),
                               class = "dropdown")
     ),
