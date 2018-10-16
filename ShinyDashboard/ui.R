@@ -37,9 +37,13 @@ variable_list <- list(
 
 ui <- dashboardPage(
   dashboardHeader(
-    title="Estimating Alberta's CWD Risk",
-    titleWidth = 300
-  ),
+    title="Migratory Marine Animals",
+    titleWidth = 300, tags$li(a(href = 'https://www.pewtrusts.org/en/projects/pew-bertarelli-ocean-legacy',
+                                img(src = 'pew.jpg',
+                                    title = "Company Home", height = "30px"),
+                                style = "padding-top:10px; padding-bottom:10px;"),
+                              class = "dropdown")
+    ),
   dashboardSidebar(
     useShinyjs(),
     width = 300,
@@ -70,36 +74,33 @@ ui <- dashboardPage(
                  uiOutput("download")
         )),
     div(id = "tab3_sidebar",
-        menuItem("Choose Variables", startExpanded = TRUE, tabName = "vars", icon = icon("th"),
-                 checkboxGroupInput("Glob_Input", "Global Variables", # make this reactive based on a scale selector?
-                                    choices = c(
-                                      Species = "sp",
-                                      Sex = "sex_1",
-                                      `Harvest Method` = "harv",
-                                      `Years Since 1st Positive` = "time"
-                                    ),
-                                    selected = variable_list$global
-                 ),
-                 selectInput("Dist_Input", "Proximity Variable",
-                             choices = c(
-                               `Select One` = "",
-                               `Mean Distance to Positives` = "e_aver",
-                               `Nearest Distance to Positive` = "e_min"
-                             ), selected = "e_min"
-                 ),
-                 selectInput("Ter_Input", "Terrain Variable",
+        menuItem("Choose Species", startExpanded = TRUE, tabName = "vars", icon = icon("th"),
+                 # checkboxGroupInput("Glob_Input", "Global Variables", # make this reactive based on a scale selector?
+                 #                    choices = c(
+                 #                      Species = "sp",
+                 #                      Sex = "sex_1",
+                 #                      `Harvest Method` = "harv",
+                 #                      `Years Since 1st Positive` = "time"
+                 #                    ),
+                 #                    selected = variable_list$global
+                 # ),
+                 # selectInput("Dist_Input", "Proximity Variable",
+                 #             choices = c(
+                 #               `Select One` = "",
+                 #               `Mean Distance to Positives` = "e_aver",
+                 #               `Nearest Distance to Positive` = "e_min"
+                 #             ), selected = "e_min"
+                 # ),
+                 selectInput("species", "Species",
                              choices = c(
                                `Select One or More` = "",
-                               `Distance to Major River` = "dRiv",
-                               `Distance to Stream` = "dStrm",
-                               `Ruggedness - 3km2` = "rugg3",
-                               `Ruggedness - 6km2` = "rugg6",
-                               `Ruggedness - 12km2` = "rugg12",
-                               `Stream Density - 3km2` = "Stream3km",
-                               `Stream Density - 6km2` = "Stream6km",
-                               `Stream Density - 12km2` = "Stream12km"
-                             ), multiple = TRUE,
-                             selected = c("dRiv", "dStrm")
+                               `Whale Shark` = "whaleShark",
+                               `Loggerhead Seaturtle` = "loggerhead",
+                               `Blue Whale` = "bWhale",
+                               `White Shark` = "whiteShark",
+                               `Laysan Albatross` = "albatross"
+                             ), multiple = TRUE
+                        
                  ),
                  selectInput("Hum_Input", "Human Disturbance Variable", # might want to make this a check box? but what about correlations?
                              choices = c(
@@ -179,19 +180,26 @@ ui <- dashboardPage(
       id = "navbar",
       tabPanel(title="Information",id="tab1",value='tab1_val',
                valueBoxOutput('tab1_valuebox', width = 12),
-               valueBoxOutput('info_box', width = 12)),
+                 img(
+                   src = "PrettyMap.png",
+                   height = 400,
+                   width = 600,
+                   align = "center"
+                ),
+               valueBoxOutput('info_box', width = 12)
+               ),
       tabPanel(title="Load and Review Data",id="tab2",value='tab2_val',
                valueBoxOutput('tab2_valuebox', width = 12),
                DT::dataTableOutput("filetable")
       ),
-      tabPanel(title="Regression Results",id="tab3",value='tab3_val',
+      tabPanel(title="Select Species",id="tab3",value='tab3_val',
                valueBoxOutput('tab3_valuebox', width = 12),
                strong(uiOutput("setup")),
                uiOutput("call"), br(),
                strong(uiOutput("setup2")),
                DT::dataTableOutput("summary"),
                uiOutput("toMap")),
-      tabPanel(title="Risk Map",id="tab4",value='tab4_val',
+      tabPanel(title="Map with MPA Recommendations",id="tab4",value='tab4_val',
                valueBoxOutput('tab4_valuebox', width = 12),
                leafletOutput("map", height = 800)
       )

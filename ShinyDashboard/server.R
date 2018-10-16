@@ -56,23 +56,22 @@ server <- shinyServer(function(input, output, session) {
   
   #starting text on each of the main tabs
   output$tab1_valuebox <- renderValueBox({
-    box(width = 12, title = 'Updating risk models and maps',  solidHeader = TRUE, status = "info", align = "center",
-        'First, click Load and Review Data to load data.', br(),
-        'Then, choose the predictor variables of interest to fit a model for spatial risk.',
-        br(), 'Finally, click Risk Map on the top right to display map.', br()
+    box(width = 12, title = "Identifying Potential Locations for New Marine Protected Areas",  solidHeader = TRUE, status = "info", align = "center",
+        "An open-source database approach"
     )
   })
   
+  
   output$info_box <- renderValueBox({
     box(width = 12, solidHeader = TRUE, status = "info", align = "center",
-        'Created by', a("Dana Paige Seidel", href = "https://www.danaseidel.com"),
-        'and Gabe Zuckerman',
-        'for use by Government of Alberta, Department of Fish and Wildlife')
+        'Created by Ben Goldstein, Erin Westeen and Gabe Zuckerman', br(),
+        'In cooperation with Emily Owen and Stacy Baez', br(),
+        'For use by Pew Bertarelli Ocean Legacy')
   })
   
   output$tab2_valuebox <- renderValueBox({
-    box(status = "info", 'Input data in the form of a CSV file.', br(), 'Click Build Regression! to start regression.', br(),
-        'Alternatively, load new points and extract variables in new data before updating the model.', br(),
+    box(status = "info", 'To use our exisiting open source data, select species in the next tab.', br(), 'Click Build Regression! to start regression.', br(),
+        'Alternatively, load additional data in the form of a .csv file.', br(),
         'Be aware extracting environmental covariates to new data may take an hour or more to complete.',
         solidHeader = TRUE, align = "left"
     )
