@@ -57,16 +57,14 @@ server <- shinyServer(function(input, output, session) {
   #starting text on each of the main tabs
   output$tab1_valuebox <- renderValueBox({
     box(width = 12, title = "Identifying Potential Locations for New Marine Protected Areas",  solidHeader = TRUE, status = "info", align = "center",
-        "An open-source database approach"
+        "An open-source database approach", br(), 'In cooperation with Emily Owen and Stacy Baez of the Pew Bertarelli Ocean Legacy'
     )
   })
   
   
   output$info_box <- renderValueBox({
     box(width = 12, solidHeader = TRUE, status = "info", align = "center",
-        'Created by Ben Goldstein, Erin Westeen and Gabe Zuckerman', br(),
-        'In cooperation with Emily Owen and Stacy Baez', br(),
-        'For use by Pew Bertarelli Ocean Legacy')
+        'Created by Ben Goldstein, Erin Westeen and Gabe Zuckerman')
   })
   
   output$tab2_valuebox <- renderValueBox({
