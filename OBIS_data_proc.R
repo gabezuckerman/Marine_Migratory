@@ -6,7 +6,7 @@ library(robis)
 library(ggplot2)
 library(mapdata)
 
-setwd('/home/ben/Desktop/MMA_Data/OBIS/')
+# setwd('/home/ben/Desktop/MMA_Data/OBIS/')
 
 
 plot.map<- function(database,center,...){
@@ -66,19 +66,22 @@ plot_species_obis <- function(sci_name = NULL, common_name = NULL,
   dev.off()
 }
 
-all_data <- rbind(
-              read.csv("Northern_Pacific/fb38a48fa31168346af76a8b084e96a80a79fbb5.csv", stringsAsFactors = F),
-              read.csv("Southern_Pacific/a8278ba2b7dc45a16f91daf01cab3c9a63e707d7.csv", stringsAsFactors = F)
-            )
-chords <- all_data[all_data$phylum == "Chordata",]
-
-obis_spec_cts <- chords %>% filter(species != "") %>% group_by(species) %>% count() %>% arrange(-n)
-
+# all_data <- rbind(
+#               read.csv("Northern_Pacific/fb38a48fa31168346af76a8b084e96a80a79fbb5.csv", stringsAsFactors = F),
+#               read.csv("Southern_Pacific/a8278ba2b7dc45a16f91daf01cab3c9a63e707d7.csv", stringsAsFactors = F)
+#             )
+# chords <- all_data[all_data$phylum == "Chordata",]
+# 
+# obis_spec_to_plot <- chords %>% filter(species != "") %>% group_by(species) %>% count() %>% arrange(-n)
+obis_spec_to_plot <- c("Caretta caretta", "Dermochelys coriacea", "Diomedea exulans", "Mirounga angustirostris",
+             "Phoebastria immutabilis", "Phoebastria nigripes", "Physeter macrocephalus",
+             "Puffinus griseus", "Thalassarche chrysostoma", "Thalassarche melanophris")
 
 # use_eol()
 # chords$commonName <- sci2comm(chords$scientificName)
 for (i in 1:10) {
-  species <- obis_spec_cts$species[i]
+  species <- obis_spec_to_plot[i]
+  species_occurrances <- occurrence(scientificname = species)
   plot_species_obis(sci_name = species, input_data = chords, 
                     plot_fn = paste0(gsub(" ", "_", species), "_plot.png"))
 }

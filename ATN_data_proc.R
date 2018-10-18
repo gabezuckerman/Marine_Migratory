@@ -93,7 +93,7 @@ plot_species_atn <- function(atn_data = NULL, species_name,
 #-------------END Function definitions-------------#
 
 # Read in ATN data
-setwd("/home/ben/Desktop/MMA_Data/ERDDAP_ATN/")
+# setwd("/home/ben/Desktop/MMA_Data/ERDDAP_ATN/")
 atn_data <- read.csv('all_ATN.csv', stringsAsFactors = F)
 atn_species_counts <- read.csv("ATN_spec_cts.csv")
 
