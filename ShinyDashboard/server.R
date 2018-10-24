@@ -10,12 +10,9 @@ library(broom)
 library(leaflet)
 library(DT)
 library(resample)
+library(googledrive)
 
-# load all rasters
-#r <- map(list.files("../../../../Dropbox/ABSK_CWD data/AB_rasters/", full.names = T), raster)
-# r <- r[c(1, 3, 6, 7)]
-# rasters <- stack(map(r, raster::resample, r[[1]]))
-# names(rasters) <- c("AG12", "e_min", "dstRIV", "dStream")
+# load data
 
 
 #points <- st_read("../../../../Dropbox/ABSK_CWD data/RiskModelUpdate/pts_inextent_UTM12N.shp")
@@ -188,9 +185,20 @@ server <- shinyServer(function(input, output, session) {
     actionButton("extractButton", "Extract Variables!")
   })
   
-  output$download <- renderUI({
-    if (input$new == "no") return(NULL)
-    downloadButton("download", "Download data with extracted values")
+  output$new <- renderUI({
+    if (input$new == "yes") {
+      selectInput("ds", "Data Sources",
+                  choices = c(
+                    `Select One or More` = "",
+                    `ATN` = "atn",
+                    `OBIS` = "obis"
+                  ), multiple = TRUE
+                )
+    }
+    else {
+      fileInput("datafile", "Choose CSV file to load in",
+                accept = c("text/csv", "text/comma-separated-values"))
+    }
   })
   
   text <- eventReactive(
