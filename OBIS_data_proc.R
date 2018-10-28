@@ -81,7 +81,8 @@ obis_spec_to_plot <- c("Caretta caretta", "Dermochelys coriacea", "Diomedea exul
 # chords$commonName <- sci2comm(chords$scientificName)
 for (i in 1:10) {
   species <- obis_spec_to_plot[i]
-  species_occurrances <- occurrence(scientificname = species)
-  plot_species_obis(sci_name = species, input_data = chords, 
+  # species_occurrences <- occurrence(scientificname = species)
+  spec_data <- read.csv(paste0("OBIS_Files/OBIS_all_chordata", gsub(" ", "_", species), ".csv"))
+  plot_species_obis(sci_name = species, input_data = spec_data, 
                     plot_fn = paste0(gsub(" ", "_", species), "_plot.png"))
 }
