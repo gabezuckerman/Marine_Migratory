@@ -11,11 +11,74 @@ library(leaflet)
 library(DT)
 library(resample)
 
-# load all rasters
-#r <- map(list.files("../../../../Dropbox/ABSK_CWD data/AB_rasters/", full.names = T), raster)
-# r <- r[c(1, 3, 6, 7)]
-# rasters <- stack(map(r, raster::resample, r[[1]]))
-# names(rasters) <- c("AG12", "e_min", "dstRIV", "dStream")
+# load data
+obis_batch <- function(list_of_species) {
+  species_data <- list()
+  for (i in 1:length(list_of_species)) {
+    species_data[[i]] <- occurrence(list_of_species[[i]])
+  }
+  return(bind_rows(species_data))
+}
+
+
+#obis plotting functions
+plot.map<- function(database,center,...){
+  Obj <- map(database,...,plot=F)
+  coord <- cbind(Obj[[1]],Obj[[2]])
+  
+  # split up the coordinates
+  id <- rle(!is.na(coord[,1]))
+  id <- matrix(c(1,cumsum(id$lengths)),ncol=2,byrow=T)
+  polygons <- apply(id,1,function(i){coord[i[1]:i[2],]})
+  
+  # split up polygons that differ too much
+  polygons <- lapply(polygons,function(x){
+    x[,1] <- x[,1] + center
+    x[,1] <- ifelse(x[,1]>180,x[,1]-360,x[,1])
+    if(sum(diff(x[,1])>300,na.rm=T) >0){
+      id <- x[,1] < 0
+      x <- rbind(x[id,],c(NA,NA),x[!id,])
+    }
+    x
+  })
+  # reconstruct the object
+  polygons <- do.call(rbind,polygons)
+  Obj[[1]] <- polygons[,1]
+  Obj[[2]] <- polygons[,2]
+  
+  map(Obj,...)
+}
+
+
+plot_species_obis <- function(sci_name = NULL, common_name = NULL, 
+                              input_data = chords, plot_fn = "Plot_Default.png") {
+  name <- NULL
+  if (!is.null(common_name)) {
+    spec_data <- input_data[input_data$commonName == common_name,]
+    name <- common_name
+  } else if (!is.null(sci_name)) {
+    spec_data <- input_data[input_data$species == sci_name,]
+    name <- sci2comm(get_uid(sci_name)) %>% as.character()
+  } else {
+    stop("In plot_species_obis, please specify a scientific or common name")
+  }
+  
+  shift <- 200
+  data_to_plot <- spec_data
+  
+  png(plot_fn, width = 1800, height = 900)
+  plot.map("world", center = shift, col = "white", bg = "gray96", 
+           fill = TRUE, ylim = c(-60,90), mar = c(0,0,0,0))
+  
+  data_to_plot$decimalLongitude[spec_data$decimalLongitude < 0] <- data_to_plot$decimalLongitude[spec_data$decimalLongitude < 0] + shift
+  data_to_plot$decimalLongitude[spec_data$decimalLongitude > 0] <- data_to_plot$decimalLongitude[spec_data$decimalLongitude > 0] + (shift-360)
+  
+  points(data_to_plot$decimalLongitude, data_to_plot$decimalLatitude, col = alpha("blue", 0.1))
+  title(paste0("OBIS data for occurrence of ", name), cex.main=3)
+  
+  dev.off()
+}
+
 
 
 #points <- st_read("../../../../Dropbox/ABSK_CWD data/RiskModelUpdate/pts_inextent_UTM12N.shp")
@@ -38,6 +101,9 @@ variable_list <- list(
   ) # ,
   # soil = c("coarse3", "coarse6", "coarse12", "fine12", "fine3", "fine6", "med12", "med3", "med6")
 )
+
+# source("DataProcessing/OBIS_data_proc.R")
+
 
 #pred <- raster("../../../../Dropbox/ABSK_CWD data/RiskModelUpdate/predict_R.tif")
 #WMUs <- st_read("../../../../Dropbox/ABSK_CWD data/RiskModelUpdate/AB_WMUs.shp")
@@ -68,9 +134,8 @@ server <- shinyServer(function(input, output, session) {
   })
   
   output$tab2_valuebox <- renderValueBox({
-    box(status = "info", 'To use our exisiting open source data, select species in the next tab.', br(), 'Click Build Regression! to start regression.', br(),
-        'Alternatively, load additional data in the form of a .csv file.', br(),
-        'Be aware extracting environmental covariates to new data may take an hour or more to complete.',
+    box(status = "info", 'Choose data source and select which species you would like download.', br(), 'Please limit to 3 species', br(),
+        'Alternatively, load additional data in the form of a .csv file.',
         solidHeader = TRUE, align = "left"
     )
   })
@@ -80,9 +145,17 @@ server <- shinyServer(function(input, output, session) {
         'Click Fit Model! to generate Regression Function and Statistics.', br(),
         'Once regression is complete, click See Map! to continue to Map')
   })
-  output$tab4_valuebox <- renderValueBox({
-    box(status = 'info', 'Choose map constants to begin mapping process.')
+  output$tab3_valuebox <- renderValueBox({
+    box(status = 'info', 'Choose map type to begin mapping process.')
   })
+  
+  observeEvent(
+    input$loadData,
+    output$speciesTable <-renderDataTable(obis_batch(input$species), options = list(scrollX = TRUE))
+    # species <- input$species
+    # datasource <- input$new
+    # print(datasource, species)
+    )
   
   
   
@@ -170,6 +243,8 @@ server <- shinyServer(function(input, output, session) {
     updateTabsetPanel(session, "navbar", 'tab3_val')
   })
   
+
+  
   #extraction--needs work!
   output$extract <- renderUI({
     df <- filedata()
@@ -188,9 +263,34 @@ server <- shinyServer(function(input, output, session) {
     actionButton("extractButton", "Extract Variables!")
   })
   
-  output$download <- renderUI({
-    if (input$new == "no") return(NULL)
-    downloadButton("download", "Download data with extracted values")
+  output$new <- renderUI({
+    if (input$new == "opensource") {
+      selectInput("ds", "Data Sources",
+                  choices = c(
+                    `Select One or More` = "",
+                    `ATN` = "atn",
+                    `OBIS` = "obis"
+                  ), multiple = TRUE
+                )
+    }
+    else if (input$new == "both") {
+      selectInput("ds", "Data Sources",
+                  choices = c(
+                    `Select One or More` = "",
+                    `ATN` = "atn",
+                    `OBIS` = "obis"
+                  ), multiple = TRUE
+                )
+      
+    }
+    # else if (input$new == "both") {
+    #   fileInput("datafile", "Choose CSV file to load in",
+    #             accept = c("text/csv", "text/comma-separated-values"))
+    #  }
+    else {
+      fileInput("datafile", "Choose CSV file to load in",
+                accept = c("text/csv", "text/comma-separated-values"))
+    }
   })
   
   text <- eventReactive(
@@ -331,6 +431,9 @@ server <- shinyServer(function(input, output, session) {
       raster::writeRaster(pred, file)
     }
   )
+  
+  
+  
   
   # observeEvent(
   #   input$downloadMap,
