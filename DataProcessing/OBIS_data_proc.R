@@ -1,10 +1,13 @@
 library(taxize)
+library(plyr)
 library(dplyr)
 library(maps)
 library(scales)
 library(robis)
 library(ggplot2)
 library(mapdata)
+
+globalGridSize <- 1 # How many degrees are our grids
 
 plot.map<- function(database,center,...){
   Obj <- map(database,...,plot=F)
@@ -33,11 +36,25 @@ plot.map<- function(database,center,...){
   map(Obj,...)
 }
 
+add_blocks <- function(point_data) {
+  point_data$blockID <- floor(point_data$decimalLongitude / globalGridSize) + 
+                        1000 * floor(point_data$decimalLatitude / globalGridSize)
+  return(point_data)
+}
 
-plot_species_obis <- function(sci_name = NULL, common_name = NULL, 
-                              input_data = chords, plot_fn = "Plot_Default.png") {
+add_latlong_to_blocks <- function(blocked_data) {
+  blocked_data$decimalLongitude <- (blocked_data$blockID %% 1000) * globalGridSize + (globalGridSize/2)
+  blocked_data$decimalLatitude <- floor(blocked_data$blockID / 1000) * globalGridSize + (globalGridSize/2)
+  return(blocked_data)
+}
+
+plot_one_species_obis <- function(sci_name = NULL, common_name = NULL, 
+                                  input_data = NULL, plot_fn = "Plot_Default.png") {
   name <- NULL
-  if (!is.null(common_name)) {
+  if (is.null(input_data)) {
+    spec_data <- occurrence(sci_name)
+    name <- sci_name
+  } else if (!is.null(common_name)) {
     spec_data <- input_data[input_data$commonName == common_name,]
     name <- common_name
   } else if (!is.null(sci_name)) {
@@ -63,20 +80,77 @@ plot_species_obis <- function(sci_name = NULL, common_name = NULL,
   dev.off()
 }
 
-# all_data <- rbind(
-#               read.csv("Northern_Pacific/fb38a48fa31168346af76a8b084e96a80a79fbb5.csv", stringsAsFactors = F),
-#               read.csv("Southern_Pacific/a8278ba2b7dc45a16f91daf01cab3c9a63e707d7.csv", stringsAsFactors = F)
-#             )
-# chords <- all_data[all_data$phylum == "Chordata",]
-# 
+plot_mult_species_obis <- function(sci_names = NULL, input_data = NULL,
+                                   plot_fn = "Plot_Default.png", distinguish = F) {
+  if (is.null(input_data)) {
+    species_data <- list()
+    for (i in 1:length(sci_names)) {
+      try(
+        species_data[[i]] <- occurrence(sci_names[i])
+      )
+    }
+    input_data <- bind_rows(species_data)
+  }
+  
+  if (distinguish) {
+    shift <- 200
+    spec_data <- input_data
+    spec_data$decimalLongitude <- spec_data$decimalLongitude + shift
+    
+    blocked_data <- add_blocks(spec_data)
+    blocked_data <- blocked_data[,c("blockID", "species")]
+    blocked_data$n_plc <- 1
+    
+    blocked_data <- ddply(blocked_data, ~blockID, summarise,
+                          nspecies=length(unique(species)), n=sum(n_plc))
+    blocked_data <- add_latlong_to_blocks(blocked_data)
+  
+    data_to_plot <- blocked_data
+    
+    world <- map_data("world", center = shift, col = "white", bg = "gray96", 
+             ylim = c(-60,90), mar = c(0,0,0,0))
+    world$long2 <- world$long + 360
+    
+    print("RUN RUN RUN")
+    
+    p <- ggplot() + 
+         geom_raster(data = data_to_plot, aes(x = decimalLongitude, y = decimalLatitude, fill = n)) +
+         scale_color_gradient(low = "#f4df42", high = "#f44141", aesthetics = "fill") +
+         geom_polygon(data = world, fill = "#e8e8e8", col="black",
+                      aes(x=long, y = lat, group = group)) +
+         geom_polygon(data = world, fill = "#e8e8e8", col="black",
+                      aes(x=long2, y = lat, group = group)) +
+         theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_line(colour = "black")) + xlim(100,300)
+    ggsave(filename = plot_fn, device = "png", plot = p)
+    
+  } else {
+    shift <- 200
+    data_to_plot <- input_data
+    
+    png(plot_fn, width = 1800, height = 900)
+    plot.map("world", center = shift, col = "white", bg = "gray96", 
+             fill = TRUE, ylim = c(-60,90), mar = c(0,0,0,0))
+    
+    data_to_plot$decimalLongitude[input_data$decimalLongitude < 0] <- data_to_plot$decimalLongitude[input_data$decimalLongitude < 0] + shift
+    data_to_plot$decimalLongitude[input_data$decimalLongitude > 0] <- data_to_plot$decimalLongitude[input_data$decimalLongitude > 0] + (shift-360)
+    
+    points(data_to_plot$decimalLongitude, data_to_plot$decimalLatitude, col = alpha("blue", 0.1))
+    title(paste0("Compound species occurrence"), cex.main=3)
+    
+    dev.off()
+    
+    print("RUN RUN RUN RUN")
+  }
+}
 
-# obis_spec_cts <- chords %>% filter(species != "") %>% group_by(species) %>% count() %>% arrange(-n)
-# 
-# 
-# # use_eol()
-# # chords$commonName <- sci2comm(chords$scientificName)
-# for (i in 1:10) {
+obis_spec_cts <- read.csv("../OBIS_Species_cts_rough.csv", stringsAsFactors = F)
+
+plot_mult_species_obis(sci_names = obis_spec_cts[1:25, "species"], 
+                       plot_fn = "../OBIS_Plots/test_pmso13.png", distinguish = T)
+
+# for (i in 100:100) {
 #   species <- obis_spec_cts$species[i]
-#   plot_species_obis(sci_name = species, input_data = chords, 
-#                     plot_fn = paste0(gsub(" ", "_", species), "_plot.png"))
+#   plot_species_obis(sci_name = species, input_data = NULL,
+#                     plot_fn = paste0("../OBIS_Plots/", gsub(" ", "_", species), "_plot.png"))
 # }
