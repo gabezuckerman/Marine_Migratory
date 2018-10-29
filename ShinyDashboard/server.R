@@ -10,6 +10,7 @@ library(broom)
 library(leaflet)
 library(DT)
 library(resample)
+library(robis)
 
 # load data
 obis_batch <- function(list_of_species) {
