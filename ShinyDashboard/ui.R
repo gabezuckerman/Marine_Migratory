@@ -63,94 +63,14 @@ ui <- dashboardPage(
                              choices = c(
                                `Select One or More` = "",
                                `Whale Shark` = "Rhincodon typus",
-                               `Loggerhead Seaturtle` = "loggerhead",
+                               `Loggerhead Seaturtle` = "Caretta caretta",
                                `Blue Whale` = "bWhale",
                                `White Shark` = "whiteShark",
                                `Laysan Albatross` = "albatross"
                              ), multiple = TRUE),
                      actionButton("loadData", "Load"),
                 uiOutput("loadData")
-                
-                        
-                 
-                 # uiOutput("sexcol"),
-                 # uiOutput("spcol"),
-                 # uiOutput("harvcol"),
-                 # uiOutput("datecol"),
-                 # uiOutput("latcol"),
-                 # uiOutput("longcol"),
-                 # uiOutput("extract"), # need to make this dynamic on the above checkbox.
-                 # uiOutput("extractbutton"),
-                 # uiOutput("button"),
-                 # uiOutput("text"),
-                 # br(),
-                 # br(),
-                
         )),
-    # div(id = "tab3_sidebar",
-    #     menuItem("Choose type of map", startExpanded = TRUE, tabName = "vars", icon = icon("th"),
-    #              # checkboxGroupInput("Glob_Input", "Global Variables", # make this reactive based on a scale selector?
-    #              #                    choices = c(
-    #              #                      Species = "sp",
-    #              #                      Sex = "sex_1",
-    #              #                      `Harvest Method` = "harv",
-    #              #                      `Years Since 1st Positive` = "time"
-    #              #                    ),
-    #              #                    selected = variable_list$global
-    #              # ),
-    #              # selectInput("Dist_Input", "Proximity Variable",
-    #              #             choices = c(
-    #              #               `Select One` = "",
-    #              #               `Mean Distance to Positives` = "e_aver",
-    #              #               `Nearest Distance to Positive` = "e_min"
-    #              #             ), selected = "e_min"
-    #              # ),
-    #              
-    #              selectInput("mapType", "Human Disturbance Variable", # might want to make this a check box? but what about correlations?
-    #                          choices = c(
-    #                            `Select One Or More` = "",
-    #                            `Road Density -- 3km2` = "Road3km",
-    #                            `Road Density -- 6km2` = "Road6km",
-    #                            `Road Density -- 12km2` = "Road12km",
-    #                            `Distance to Town` = "Dtown",
-    #                            `Distance to Road` = "Droad"
-    #                          ), multiple = TRUE
-    #              ),
-    #              selectInput("LCV_Input", "Landcover Variable",
-    #                          choices = c(
-    #                            `Select One` = "",
-    #                            `Agriculture -- 3km2` = "Pagri3",
-    #                            `Agriculture -- 6km2` = "Pagri6",
-    #                            `Agriculture -- 12km2` = "AG12",
-    #                            `Cover -- 3km2` = "Pcover3",
-    #                            `Cover -- 6km2` = "Pcover6",
-    #                            `Cover -- 12km2` = "Pcover12",
-    #                            `Open -- 3km2` = "Popen3",
-    #                            `Open -- 6km2` = "Popen6",
-    #                            `Open -- 12km2` = "Popen12",
-    #                            `Grassland -- 3km2` = "Pgrass3",
-    #                            `Grassland -- 6km2` = "Pgrass6",
-    #                            `Grassland -- 12km2` = "Pgrass12"
-    #                          ), selectize = F, selected = "AG12"
-    #              ),
-    #              textInput("interaction", "Interactions?", "dRiv*AG12"),
-    #              # selectInput("Soil_Input", "Soil Texture Variable", # make this reactive based on a scale selector?
-    #              #   choices = c(
-    #              #     `Select One` = "",
-    #              #     `Fine -- 3km2` = "fine3",
-    #              #     `Fine -- 6km2` = "fine6",
-    #              #     `Fine -- 12km2` = "fine12",
-    #              #     `Medium -- 3km2` = "med3",
-    #              #     `Medium -- 6km2` = "med6",
-    #              #     `Medium -- 12km2` = "med12",
-    #              #     `Coarse -- 3km2` = "coarse3",
-    #              #     `Coarse -- 6km2` = "coarse6",
-    #              #     `Coarse -- 12km2` = "coarse12"
-    #              #   ), selectize = F
-    #              # ),
-    #              actionButton("goButton", "Fit Model!", width = "50%")
-    #              
-    #     )),
     div(id = "tab3_sidebar",
         menuItem("Choose Map Type", tabName = "type", startExpanded = TRUE, icon = icon("th"),
                  selectInput("maptype", "Map Types", 
@@ -168,12 +88,6 @@ ui <- dashboardPage(
     
   ),
   dashboardBody(
-    # useShinyjs(),
-    # tabItems(
-    #   tabItem(tabName = "load",
-    #           h2("review data")
-    #   )
-    # )
     #main tab setup
     tabsetPanel(
       id = "navbar",
@@ -191,16 +105,9 @@ ui <- dashboardPage(
                valueBoxOutput('tab2_valuebox', width = 12),
                DT::dataTableOutput("speciesTable")
       ),
-      # tabPanel(title="Select Species",id="tab3",value='tab3_val',
-      #          valueBoxOutput('tab3_valuebox', width = 12),
-      #          strong(uiOutput("setup")),
-      #          uiOutput("call"), br(),
-      #          strong(uiOutput("setup2")),
-      #          DT::dataTableOutput("summary"),
-      #          uiOutput("toMap")),
       tabPanel(title="Map with MPA Recommendations",id="tab3",value='tab3_val',
                valueBoxOutput('tab3_valuebox', width = 12),
-               leafletOutput("map", height = 800)
+               leafletOutput("map", height = 500)
       )
     )
   )

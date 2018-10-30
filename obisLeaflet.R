@@ -4,6 +4,7 @@ library(sf)
 library(tidyverse)
 library(ggmap)
 library(leaflet)
+library('rphylopic')
 # load data
 obis_batch <- function(list_of_species) {
   species_data <- list()
@@ -15,27 +16,81 @@ obis_batch <- function(list_of_species) {
 
 loggerhead <- obis_batch("Caretta caretta")
 
+#functions that help with keeping only instances in the Pacific Ocean
+inPacific <- function(long, lat) {
+  if (long <= 290 && long >= 280 && lat >= -80 && lat <= 9) {
+    return(TRUE)
+  }
+  else if(long <= 280 && long >= 276 && lat >= -80 && lat <= 9) {
+    return(TRUE)
+  }
+  else if(long <= 276 && long >= 270 && lat >= -80 && lat <= 14) {
+    return(TRUE)
+  }
+  else if(long <= 270 && long >= 260 && lat >= -80 && lat <= 18) {
+    return(TRUE)
+  }
+  else if(long <= 260 && long >= 145 && lat >= -80 && lat <= 66) {
+    return(TRUE)
+  }
+  else if(long <= 145 && long >= 100 && lat >= 0 && lat <= 66) {
+    return(TRUE)
+  }
+  else {
+    return(FALSE)
+  }
+}
+
+shift <- function(longitude) {
+  if (longitude < 0) {
+    return(longitude + 360)
+  }
+  else {
+    return(longitude)
+  }
+}
+
+pacificProcessing<- function(obisTable) {
+  #reformats longitude
+  obisTable$decimalLongitude <- as.numeric(map(obisTable$decimalLongitude, shift))
+  #keeps rows in pacific determined by lon, lat
+  pacific <- map2(obisTable$decimalLongitude, obisTable$decimalLatitude, ~inPacific(.x, .y))
+  obisTable$inPO <- pacific
+  obisTable <- filter(obisTable, inPO == TRUE)
+  return(obisTable)
+}
+
+
+
 
 #instances where body of water is pacific
-pacific <- loggerhead %>% filter(grepl("pacific", waterBody, ignore.case = T))
-meanX <- mean(pacific$decimalLongitude)
-meanY <- mean(pacific$decimalLatitude)
+pacificLoggerhead <- pacificProcessing(loggerhead)
 
 
-unique(pacific$collectionCode)
-
-
-turtleIcon <- makeIcon("turtle.jpg", 18, 18)
+turtleIcon <- makeIcon("seaturtle.jpg", "seaturtle@2x.jpg", 18, 18)
 
 
 
-m <- leaflet(data = pacific) %>% addTiles() %>%
+m <- leaflet(data = pacificLoggerhead) %>% addTiles() %>%
   addMarkers(~decimalLongitude, ~decimalLatitude, 
              popup = ~as.character(species),
              label = ~as.numeric(individualCount), 
              icon = turtleIcon)  %>%
-  addProviderTiles(providers$Esri.OceanBasemap)
+  addProviderTiles(providers$Esri.OceanBasemap) %>%
+  setView(lng = 180, lat = 0, zoom = 1)
 
-setView(map = m, lng = -8.7, lat = 124.5, zoom = 1)
 
+#creates a leaflet object from an obis table
+pacificMap <- function(obisTable) {
+  p <- pacificProcessing(obisTable)
+  m <- leaflet(data = p) %>% addTiles() %>%
+    addMarkers(~decimalLongitude, ~decimalLatitude, 
+               popup = ~as.character(species),
+               label = ~as.numeric(individualCount)) %>%
+    addProviderTiles(providers$Esri.OceanBasemap) %>%
+    setView(lng = 180, lat = 0, zoom = 1)
+  return(m)
+}
+
+pacificMap(loggerhead)
 
