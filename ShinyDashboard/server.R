@@ -86,7 +86,6 @@ server <- shinyServer(function(input, output, session) {
     toggle("tab1_sidebar", condition = input$navbar == "tab1_val")
     toggle("tab2_sidebar", condition = input$navbar == "tab2_val")
     toggle("tab3_sidebar", condition = input$navbar == "tab3_val")
-    toggle("tab4_sidebar", condition = input$navbar == "tab4_val")
   })
   
   #starting text on each of the main tabs
@@ -110,8 +109,10 @@ server <- shinyServer(function(input, output, session) {
   })
   
   output$tab3_valuebox <- renderValueBox({
-    box(status = 'info', 'Choose map type to begin mapping process.')
+    box(status = 'info', 'Choose map type to begin mapping process.', br(), 
+        'You chose the following species:', br(), input$species)
   })
+  
   
   observeEvent(
     input$loadData,
@@ -121,10 +122,13 @@ server <- shinyServer(function(input, output, session) {
     # print(datasource, species)
     )
   
+  observeEvent(
+    input$mapButton,
+    output$map <- renderLeaflet({
+      pacificMap(obis_batch(input$species))
+    })
+  )
   
-  output$map <- renderLeaflet({
-   pacificMap(obis_batch(input$species))
-  })
   
 
   output$toMap <- renderUI({
