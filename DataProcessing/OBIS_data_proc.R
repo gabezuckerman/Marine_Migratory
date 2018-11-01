@@ -144,10 +144,10 @@ plot_mult_species_obis <- function(sci_names = NULL, input_data = NULL,
   }
 }
 
-obis_spec_cts <- read.csv("../OBIS_Species_cts_rough.csv", stringsAsFactors = F)
+obis_spec_cts <- read.csv("OBIS_Species_cts_rough.csv", stringsAsFactors = F)
 
-plot_mult_species_obis(sci_names = obis_spec_cts[1:25, "species"], 
-                       plot_fn = "../OBIS_Plots/test_pmso13.png", distinguish = T)
+plot_mult_species_obis(sci_names = obis_spec_cts[1:5, "species"], 
+                       plot_fn = "OBIS_Plots/test_pmso13.png", distinguish = T)
 
 # for (i in 100:100) {
 #   species <- obis_spec_cts$species[i]
