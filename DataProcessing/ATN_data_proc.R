@@ -57,7 +57,7 @@ plot_species_atn <- function(atn_data = NULL, species_name,
   if (!(species_name %in% atn_data$commonName)) {
     stop(paste0('No data for species "', species_name, '"'))
   }
-  atn_species <- atn_data[atn_data$commonName==species_name,]
+  atn_species <- atn_data[atn_data$commonName==species_name,] %>% arrange(time)
   atn_species$time <- ymd_hms(atn_species$time)
   if (!is.null(month)) {
     atn_species <- atn_species[month(atn_species$time) == month,]
@@ -93,17 +93,18 @@ plot_species_atn <- function(atn_data = NULL, species_name,
 #-------------END Function definitions-------------#
 
 # Read in ATN data
-setwd("/home/ben/Desktop/MMA_Data/ERDDAP_ATN/")
-atn_data <- read.csv('all_ATN.csv', stringsAsFactors = F)
-atn_species_counts <- read.csv("ATN_spec_cts.csv")
+atn_data <- read.csv('all_ATN.csv', stringsAsFactors = F)[-1,]
+atn_species_counts <- atn_data %>% group_by(commonName) %>% count() %>% arrange(-n)
 
 # Plot species with top n most points
 atn_species_counts <- atn_species_counts %>% arrange(-n)
 n <- 1
 colors <- brewer.pal(max(n, 3), "Paired")
 
-for (i in 1:n) {
-  plot_species_atn(atn_data=atn_data, species_name=as.character(atn_species_counts$commonName[i]), linecol=colors[i])
+for (i in 1:4) {
+  plot_species_atn(atn_data=atn_data, 
+                   species_name=as.character(atn_species_counts$commonName[i]), 
+                   linecol=colors[i], add = T)
 }
 
 # Month by month
