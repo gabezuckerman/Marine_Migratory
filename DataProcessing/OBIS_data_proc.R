@@ -145,6 +145,12 @@ plot_mult_species_obis <- function(sci_names = NULL, input_data = NULL,
 }
 
 obis_spec_cts <- read.csv("OBIS_Species_cts_rough.csv", stringsAsFactors = F)
+obis_spec_cts <- obis_spec_cts[obis_spec_cts$n > 10,]
+obis_spec_cts$commonName <- obis_spec_cts$species
+for (i in 1:nrow(obis_spec_cts)) {
+  obis_spec_cts$commonName[i] <- try(sci2comm(id = get_uid(obis_spec_cts$species[i]), db = "iucn"))
+}
+obis_spec_cts$commonName <- as.character(obis_spec_cts$commonName)
 
 plot_mult_species_obis(sci_names = obis_spec_cts[1:5, "species"], 
                        plot_fn = "OBIS_Plots/test_pmso13.png", distinguish = T)
