@@ -19,11 +19,15 @@ getOBISnames <- function() {
   return(spec$commonName)
 }
 
-
 #loading in ATN Data
-loadATN <- function(){
+loadATN <- function(list_species){
   atn_data <- read.csv('../MMA_Data/ERDDAP_ATN/all_ATN.csv')
-  return(atn_data)
+  l <- list()
+  for(i in 1:length(list_species)) {
+    s <- atn_data %>% filter(commonName == list_species[i])
+    l[[i]] <- s
+  }
+  return(bind_rows(l))
 }
 
 #gets common names for ATN
@@ -140,13 +144,24 @@ server <- shinyServer(function(input, output, session) {
   })
   
   
-  observeEvent(
-    input$loadData,
-    output$speciesTable <-renderDataTable(obis_batch(input$species), options = list(scrollX = TRUE))
-    # species <- input$species
-    # datasource <- input$new
-    # print(datasource, species)
-    )
+  output$loadData <- renderUI({
+    if(input$datasource == "OBIS") {
+      renderDataTable(obis_batch(input$species), options = list(scrollX = TRUE))
+    }
+    else if(input$datasource == "ATN") {
+      renderDataTable(loadATN(input$species), options = list(scrollX = TRUE))
+    }
+  })
+  
+  
+  
+  # observeEvent(
+  #   input$loadData,
+  #   output$speciesTable <-renderDataTable(obis_batch(input$species), options = list(scrollX = TRUE))
+  #   # species <- input$species
+  #   # datasource <- input$new
+  #   # print(datasource, species)
+  #   )
   
   # output$new <- renderUI({
   #   if(input$new == "opensource") {
