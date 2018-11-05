@@ -60,14 +60,9 @@ ui <- dashboardPage(
                  ),
                 uiOutput("new"),
                  selectInput("species", "Species",
-                             choices = c(
-                               `Select One or More` = "",
-                               `Whale Shark` = "Rhincodon typus",
-                               `Loggerhead Seaturtle` = "Caretta caretta",
-                               `Blue Whale` = "bWhale",
-                               `White Shark` = "whiteShark",
-                               `Laysan Albatross` = "albatross"
-                             ), multiple = TRUE),
+                             choices = read.csv("../DataProcessing/obis_spec_cts_named.csv",
+                                                stringsAsFactors = F)$commonName, 
+                             multiple = TRUE),
                      actionButton("loadData", "Load"),
                 uiOutput("loadData")
         )),
