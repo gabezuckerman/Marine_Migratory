@@ -35,6 +35,7 @@ ui <- dashboardPage(
                               inline = F, selected = "opensource"
                  ),
                 uiOutput("new"),
+
                 radioButtons("datasource", "If you are using opensource, which datasource would you like to use?",
                              choices = c("OBIS", "ATN"), inline = T),
                 uiOutput("datasource"),
@@ -47,6 +48,8 @@ ui <- dashboardPage(
                  #               `White Shark` = "whiteShark",
                  #               `Laysan Albatross` = "albatross"
                  #             ), multiple = TRUE),
+
+                 
                      actionButton("loadData", "Load"),
                 uiOutput("loadData")
         )),
