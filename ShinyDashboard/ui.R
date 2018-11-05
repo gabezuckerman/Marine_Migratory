@@ -37,7 +37,7 @@ ui <- dashboardPage(
                 uiOutput("new"),
 
                 radioButtons("datasource", "If you are using opensource, which datasource would you like to use?",
-                             choices = c("OBIS", "ATN"), inline = T),
+                             choices = c("ATN", "OBIS"), inline = T),
                 uiOutput("datasource"),
                  # selectInput("species", "Species",
                  #             choices = c(
@@ -47,11 +47,11 @@ ui <- dashboardPage(
                  #               `Blue Whale` = "bWhale",
                  #               `White Shark` = "whiteShark",
                  #               `Laysan Albatross` = "albatross"
-                 #             ), multiple = TRUE),
-
+                 #             ), multiple = TRUE), 
                  
                      actionButton("loadData", "Load"),
-                uiOutput("loadData")
+                uiOutput("loadData"), 
+                uiOutput("species")
         )),
     div(id = "tab3_sidebar",
         menuItem("Choose Map Type", tabName = "type", startExpanded = TRUE, icon = icon("th"),

@@ -12,17 +12,24 @@ library(DT)
 library(resample)
 library(robis)
 
+
+#get commonNames for OBIS
+getOBISnames <- function() {
+  spec <- read.csv("../DataProcessing/obis_spec_cts_named.csv", stringsAsFactors = F)
+  return(spec$commonName)
+}
+
+
 #loading in ATN Data
 loadATN <- function(){
   atn_data <- read.csv('../MMA_Data/ERDDAP_ATN/all_ATN.csv')
   return(atn_data)
 }
 
-#gets common names
+#gets common names for ATN
 getATNnames <- function() {
-  atn <- loadATN()
-  names <- unique(atn$commonName)
-  return(names)
+  spec <- read.csv("../MMA_Data/ERDDAP_ATN/ATN_spec_cts.csv", stringsAsFactors = F)
+  return(spec$commonName)
 }
 
 # load OBIS data
@@ -150,12 +157,22 @@ server <- shinyServer(function(input, output, session) {
   #   
   # })
   output$datasource <- renderUI({
-    if(input$datasource == "ATN") 
-      selectInput("speciesATN", "Species (ATN)",
+    if(input$datasource == "ATN") {
+      selectInput("species", "Species (ATN)",
                   choices = c(
+                    `Select One or More` = "",
                    getATNnames()
                   ), multiple = TRUE)
+    }
+    else if(input$datasource == "OBIS") {
+      selectInput("species", "Species (OBIS)",
+                  choices = c(
+                    `Select One or More` = "",
+                    getOBISnames()
+                  ), multiple = TRUE)
+    }
   })
+  
 
   
   
