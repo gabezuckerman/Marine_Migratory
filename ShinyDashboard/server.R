@@ -18,7 +18,11 @@ obis_batch <- function(list_of_species) {
   spec_names <- read.csv("../DataProcessing/obis_spec_cts_named.csv")
   for (i in 1:length(list_of_species)) {
     sciname <- spec_names$species[spec_names$commonName == list_of_species[[i]]]
-    species_data[[i]] <- occurrence(sciname)
+    if (identical(spec_names, character(0))) {
+      print(paste0("Species '", list_of_species[[i]], "' not found"))
+    } else {
+      species_data[[i]] <- occurrence(sciname)
+    }
   }
   return(bind_rows(species_data))
 }
