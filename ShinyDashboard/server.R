@@ -12,7 +12,20 @@ library(DT)
 library(resample)
 library(robis)
 
-# load data
+#loading in ATN Data
+loadATN <- function(){
+  atn_data <- read.csv('../MMA_Data/ERDDAP_ATN/all_ATN.csv')
+  return(atn_data)
+}
+
+#gets common names
+getATNnames <- function() {
+  atn <- loadATN()
+  names <- unique(atn$commonName)
+  return(names)
+}
+
+# load OBIS data
 obis_batch <- function(list_of_species) {
   species_data <- list()
   for (i in 1:length(list_of_species)) {
@@ -122,6 +135,29 @@ server <- shinyServer(function(input, output, session) {
     # print(datasource, species)
     )
   
+  # output$new <- renderUI({
+  #   if(input$new == "opensource") {
+  #     radioButtons("datasource", "Which datasource would you like to use?",
+  #                  choices = c("OBIS", "ATN"), inline = T)
+  #     uiOutput("datasource")
+  #   }
+  #   
+  # })
+  output$datasource <- renderUI({
+    if(input$datasource == "ATN") 
+      selectInput("speciesATN", "Species (ATN)",
+                  choices = c(
+                   getATNnames()
+                  ), multiple = TRUE)
+  })
+
+  
+  
+  
+  
+  
+  # output$datasource <- renderDataTable(obis_batch(input$species), options = list(scrollX = TRUE))
+  
   observeEvent(
     input$mapButton,
     output$map <- renderLeaflet({
@@ -131,23 +167,23 @@ server <- shinyServer(function(input, output, session) {
   
   
 
-  output$toMap <- renderUI({
-    if (is.null(logit())) return(NULL)
-    actionButton("toMap", "See Map!")
-  })
-  
-  shinyjs::onclick('toMap',expr={
-    # move to Map Results
-    updateTabsetPanel(session, "navbar", 'tab4_val')
-  })
+  # output$toMap <- renderUI({
+  #   if (is.null(logit())) return(NULL)
+  #   actionButton("toMap", "See Map!")
+  # })
+  # 
+  # shinyjs::onclick('toMap',expr={
+  #   # move to Map Results
+  #   updateTabsetPanel(session, "navbar", 'tab4_val')
+  # })
   
   
   #downloads created map, not reacitve
-  output$downloadMap <- downloadHandler(
-    filename = function() { paste0(main(),'.tif') },
-    #predictions() not a thing yet, so cannot save it
-    content = function(file) {
-      raster::writeRaster(pred, file)
-    }
-  )
+  # output$downloadMap <- downloadHandler(
+  #   filename = function() { paste0(main(),'.tif') },
+  #   #predictions() not a thing yet, so cannot save it
+  #   content = function(file) {
+  #     raster::writeRaster(pred, file)
+  #   }
+  # )
 })
