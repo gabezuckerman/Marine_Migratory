@@ -10,35 +10,11 @@ library(broom)
 library(leaflet)
 library(shinythemes)
 
-#points <- st_read("../../../../Dropbox/ABSK_CWD data/RiskModelUpdate/pts_inextent_UTM12N.shp")
-
-WMU163_keys <- c(
-  553, 10856, 10859, 10903, 10905, 10939, 10942, 10950, 12349,
-  12567, 13395, 13473, 13927, 15139, 44895, 44898, 44933, 44935,
-  44948
-)
-
-variable_list <- list(
-  response = "cwd",
-  global = c("sp", "sex_1", "harv", "time"),
-  dist = c("e_min", "e_aver"),
-  hum = c("Dtown", "Droad", "Road3km", "Road6km", "Road12km"),
-  ter = c("dRiv", "dStrm", "Stream3km", "Stream6km", "Stream12km", "rugg3", "rugg6", "rugg12"),
-  LCV = c(
-    "Pcover3", "Pagri3", "Pgrass3", "Popen3", "Pcover6", "Pagri6", "Pgrass6", "Popen6",
-    "Pcover12", "Ag12", "Pgrass12", "Popen12"
-  ) # ,
-  # soil = c("coarse3", "coarse6", "coarse12", "fine12", "fine3", "fine6", "med12", "med3", "med6")
-)
-
-#pred <- raster("../../../Dropbox/ABSK_CWD data/RiskModelUpdate/predict_R.tif")
-#WMUs <- st_read("../../../../Dropbox/ABSK_CWD data/RiskModelUpdate/AB_WMUs.shp")
-#rastercol <-  colorRampPalette(c("#49AD3F","#f1F904","#D73027"), bias = 2)(256)
 
 
 ui <- dashboardPage(
   dashboardHeader(
-    title="Migratory Marine Animals",
+    title="Migratory Ocean Visuaization Tool",
     titleWidth = 300, tags$li(a(href = 'https://www.pewtrusts.org/en/projects/pew-bertarelli-ocean-legacy',
                                 img(src = 'pew.jpg',
                                     title = "Pew Bertarelli Ocean Legacy", height = "30px"),
@@ -59,10 +35,21 @@ ui <- dashboardPage(
                               inline = F, selected = "opensource"
                  ),
                 uiOutput("new"),
-                 selectInput("species", "Species",
-                             choices = read.csv("../DataProcessing/obis_spec_cts_named.csv",
-                                                stringsAsFactors = F)$commonName, 
-                             multiple = TRUE),
+
+                radioButtons("datasource", "If you are using opensource, which datasource would you like to use?",
+                             choices = c("OBIS", "ATN"), inline = T),
+                uiOutput("datasource"),
+                 # selectInput("species", "Species",
+                 #             choices = c(
+                 #               `Select One or More` = "",
+                 #               `Whale Shark` = "Rhincodon typus",
+                 #               `Loggerhead Seaturtle` = "Caretta caretta",
+                 #               `Blue Whale` = "bWhale",
+                 #               `White Shark` = "whiteShark",
+                 #               `Laysan Albatross` = "albatross"
+                 #             ), multiple = TRUE),
+
+                 
                      actionButton("loadData", "Load"),
                 uiOutput("loadData")
         )),
