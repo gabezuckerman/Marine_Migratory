@@ -15,8 +15,10 @@ library(robis)
 # load data
 obis_batch <- function(list_of_species) {
   species_data <- list()
+  spec_names <- read.csv("../DataProcessing/obis_spec_cts_named.csv")
   for (i in 1:length(list_of_species)) {
-    species_data[[i]] <- occurrence(list_of_species[[i]])
+    sciname <- spec_names$species[spec_names$commonName == list_of_species[[i]]]
+    species_data[[i]] <- occurrence(sciname)
   }
   return(bind_rows(species_data))
 }
