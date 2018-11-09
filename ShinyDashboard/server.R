@@ -12,7 +12,8 @@ library(DT)
 library(resample)
 library(robis)
 
-
+atn <- NULL
+obis <- NULL
 #get commonNames for OBIS
 getOBISnames <- function() {
   spec <- read.csv("../DataProcessing/obis_spec_cts_named.csv", stringsAsFactors = F)
@@ -21,12 +22,19 @@ getOBISnames <- function() {
 
 #loading in ATN Data
 loadATN <- function(list_species){
+  print("reached load function")
   atn_data <- read.csv('../MMA_Data/ERDDAP_ATN/all_ATN.csv')
+  colnames(atn_data)[8] <- "decimalLongitude"
+  colnames(atn_data)[9] <- "decimalLatitude"
+  colnames(atn_data)[1] <- "species"
+  print("loaded in data")
   l <- list()
   for(i in 1:length(list_species)) {
-    s <- atn_data %>% filter(commonName == list_species[i])
+    s <- atn_data %>% filter(species == list_species[i])
     l[[i]] <- s
   }
+  print("got species")
+  print(bind_rows(l))
   return(bind_rows(l))
 }
 
@@ -38,6 +46,9 @@ getATNnames <- function() {
 
 # load OBIS data
 obis_batch <- function(list_of_species) {
+  if (list_of_species == "") {
+    return(NULL)
+  }
   species_data <- list()
   spec_names <- read.csv("../DataProcessing/obis_spec_cts_named.csv")
   for (i in 1:length(list_of_species)) {
@@ -85,23 +96,27 @@ shift <- function(longitude) {
   }
 }
 
-pacificProcessing<- function(obisTable) {
+#need to pre-process atn data
+pacificProcessing<- function(table) {
   #reformats longitude
-  obisTable$decimalLongitude <- as.numeric(map(obisTable$decimalLongitude, shift))
+  table$decimalLongitude <- as.numeric(map(table$decimalLongitude, shift))
   #keeps rows in pacific determined by lon, lat
-  pacific <- map2(obisTable$decimalLongitude, obisTable$decimalLatitude, ~inPacific(.x, .y))
-  obisTable$inPO <- pacific
-  obisTable <- filter(obisTable, inPO == TRUE)
-  return(obisTable)
+  pacific <- map2(table$decimalLongitude, table$decimalLatitude, ~inPacific(.x, .y))
+  head(table)
+  table$inPO <- pacific
+  head(table)
+  table <- filter(table, inPO == TRUE)
+  return(table)
 }
 
 #creates a leaflet object from an obis table
-pacificMap <- function(obisTable) {
-  p <- pacificProcessing(obisTable)
-  m <- leaflet(data = p) %>% addTiles() %>%
+pacificMap <- function(table) {
+  table$decimalLongitude <- as.numeric(table$decimalLongitude)
+  table$decimalLatitude <- as.numeric(table$decimalLatitude)
+  m <- leaflet(data = table) %>% addTiles() %>%
     addMarkers(~decimalLongitude, ~decimalLatitude, 
                popup = ~as.character(species),
-               label = ~as.numeric(individualCount)) %>%
+               label = ~as.character(species)) %>%
     addProviderTiles(providers$Esri.OceanBasemap) %>%
     setView(lng = 180, lat = 0, zoom = 1)
   return(m)
@@ -144,14 +159,10 @@ server <- shinyServer(function(input, output, session) {
   })
   
   
-  output$loadData <- renderUI({
-    if(input$datasource == "OBIS") {
-      renderDataTable(obis_batch(input$species), options = list(scrollX = TRUE))
-    }
-    else if(input$datasource == "ATN") {
-      renderDataTable(loadATN(input$species), options = list(scrollX = TRUE))
-    }
-  })
+  # output$loadData <- renderUI({
+  #     renderDataTable(obis_batch(input$species), options = list(scrollX = TRUE))
+  #     
+  # })
   
   
   
@@ -178,19 +189,33 @@ server <- shinyServer(function(input, output, session) {
                     `Select One or More` = "",
                    getATNnames()
                   ), multiple = TRUE)
+      #actionButton("loadATN", "Load")
     }
     else if(input$datasource == "OBIS") {
+      actionButton("loadOBIS", "Load")
       selectInput("species", "Species (OBIS)",
                   choices = c(
                     `Select One or More` = "",
                     getOBISnames()
                   ), multiple = TRUE)
     }
+    #actionButton("loadObis", "Load")
   })
   
+   #output$loadOBIS <- renderDataTable(obis_batch(input$species), options = list(scrollX = TRUE))
 
-  
-  
+    
+    observeEvent(
+      input$loadData, 
+      if(input$datasource == "OBIS") {
+        obis <<- pacificProcessing(obis_batch(input$species))
+        output$OBISTable <- renderDataTable(obis, options = list(scrollX = TRUE))
+      }
+      else if(input$datasource == "ATN") {
+        atn <<- loadATN(input$species) 
+        output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
+      }
+    )
   
   
   
@@ -199,7 +224,12 @@ server <- shinyServer(function(input, output, session) {
   observeEvent(
     input$mapButton,
     output$map <- renderLeaflet({
-      pacificMap(obis_batch(input$species))
+      if(input$datasource == "ATN") {
+        pacificMap(atn)
+      }
+      else if(input$datasource == "OBIS") {
+        pacificMap(obis)
+      }
     })
   )
   

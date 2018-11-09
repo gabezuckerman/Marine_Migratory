@@ -35,23 +35,16 @@ ui <- dashboardPage(
                               inline = F, selected = "opensource"
                  ),
                 uiOutput("new"),
-
                 radioButtons("datasource", "If you are using opensource, which datasource would you like to use?",
-                             choices = c("ATN", "OBIS"), inline = T),
+                             choices = c("OBIS", "ATN"), inline = T),
                 uiOutput("datasource"),
-                 # selectInput("species", "Species",
-                 #             choices = c(
-                 #               `Select One or More` = "",
-                 #               `Whale Shark` = "Rhincodon typus",
-                 #               `Loggerhead Seaturtle` = "Caretta caretta",
-                 #               `Blue Whale` = "bWhale",
-                 #               `White Shark` = "whiteShark",
-                 #               `Laysan Albatross` = "albatross"
-                 #             ), multiple = TRUE), 
-                 
-                     actionButton("loadData", "Load"),
-                uiOutput("loadData"), 
-                uiOutput("species")
+                actionButton("loadData", "Load"),
+                uiOutput("loadData")
+                # uiOutput("species"),
+                # uiOutput("OBISTable"),
+                # uiOutput("ATNTable")
+                # uiOutput("loadATN"),
+                # uiOutput("loadObis")
         )),
     div(id = "tab3_sidebar",
         menuItem("Choose Map Type", tabName = "type", startExpanded = TRUE, icon = icon("th"),
@@ -85,7 +78,8 @@ ui <- dashboardPage(
                ),
       tabPanel(title="Load and Review Data",id="tab2",value='tab2_val',
                valueBoxOutput('tab2_valuebox', width = 12),
-               DT::dataTableOutput("speciesTable")
+               DT::dataTableOutput("ATNTable"),
+               DT::dataTableOutput("OBISTable")
       ),
       tabPanel(title="Map with MPA Recommendations",id="tab3",value='tab3_val',
                valueBoxOutput('tab3_valuebox', width = 12),
