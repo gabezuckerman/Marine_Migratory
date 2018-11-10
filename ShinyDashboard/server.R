@@ -23,7 +23,7 @@ getOBISnames <- function() {
 #loading in ATN Data
 loadATN <- function(list_species){
   print("reached load function")
-  atn_data <- read.csv('../MMA_Data/ERDDAP_ATN/all_ATN.csv')
+  atn_data <- read.csv('../all_ATN.csv', stringsAsFactors = F)
   colnames(atn_data)[8] <- "decimalLongitude"
   colnames(atn_data)[9] <- "decimalLatitude"
   colnames(atn_data)[1] <- "species"
@@ -40,7 +40,7 @@ loadATN <- function(list_species){
 
 #gets common names for ATN
 getATNnames <- function() {
-  spec <- read.csv("../MMA_Data/ERDDAP_ATN/ATN_spec_cts.csv", stringsAsFactors = F)
+  spec <- read.csv("../ATN_spec_cts.csv", stringsAsFactors = F)
   return(spec$commonName)
 }
 
@@ -52,14 +52,22 @@ obis_batch <- function(list_of_species) {
   species_data <- list()
   spec_names <- read.csv("../DataProcessing/obis_spec_cts_named.csv")
   for (i in 1:length(list_of_species)) {
-    sciname <- spec_names$species[spec_names$commonName == list_of_species[[i]]]
-    if (identical(spec_names, character(0))) {
-      print(paste0("Species '", list_of_species[[i]], "' not found"))
-    } else {
+    spec_specified <- list_of_species[[i]]
+    if (spec_specified %in% spec_names$commonName) {
+      sciname <- spec_names$species[spec_names$commonName == spec_specified]
       species_data[[i]] <- occurrence(sciname)
+    } else if (spec_specified %in% spec_names$species) {
+      sciname <- spec_specified
+      species_data[[i]] <- occurrence(sciname)
+    } else {
+      print(paste0("Species '", list_of_species[[i]], "' not found"))
+      return(NULL)
     }
   }
-  return(bind_rows(species_data))
+  obis <- bind_rows(species_data)
+  obis$decimalLongitude <- as.numeric(obis$decimalLongitude)
+  obis$decimalLongitude <- map(obis$decimalLongitude, shift)
+  return(obis)
 }
 
 #functions that help with keeping only instances in the Pacific Ocean
@@ -97,23 +105,24 @@ shift <- function(longitude) {
 }
 
 #need to pre-process atn data
-pacificProcessing<- function(table) {
+pacificProcessing<- function(mytable) {
   #reformats longitude
-  table$decimalLongitude <- as.numeric(map(table$decimalLongitude, shift))
+  mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
+  mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
   #keeps rows in pacific determined by lon, lat
-  pacific <- map2(table$decimalLongitude, table$decimalLatitude, ~inPacific(.x, .y))
-  head(table)
-  table$inPO <- pacific
-  head(table)
-  table <- filter(table, inPO == TRUE)
-  return(table)
+  pacific <- map2(mytable$decimalLongitude, mytable$decimalLatitude, ~inPacific(.x, .y))
+  head(mytable)
+  mytable$inPO <- pacific
+  head(mytable)
+  mytable <- filter(mytable, inPO == TRUE)
+  return(mytable)
 }
 
-#creates a leaflet object from an obis table
-pacificMap <- function(table) {
-  table$decimalLongitude <- as.numeric(table$decimalLongitude)
-  table$decimalLatitude <- as.numeric(table$decimalLatitude)
-  m <- leaflet(data = table) %>% addTiles() %>%
+#creates a leaflet object from an obis or atn table
+pacificMap <- function(mytable) {
+  mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
+  mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
+  m <- leaflet(data = mytable) %>% addTiles() %>%
     addMarkers(~decimalLongitude, ~decimalLatitude, 
                popup = ~as.character(species),
                label = ~as.character(species)) %>%
@@ -212,7 +221,7 @@ server <- shinyServer(function(input, output, session) {
         output$OBISTable <- renderDataTable(obis, options = list(scrollX = TRUE))
       }
       else if(input$datasource == "ATN") {
-        atn <<- loadATN(input$species) 
+        atn <<- loadATN(input$species)
         output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
       }
     )
