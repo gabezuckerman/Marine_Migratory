@@ -12,6 +12,7 @@ library(DT)
 library(resample)
 library(robis)
 library(lubridate)
+library(RColorBrewer)
 
 atn <- NULL
 obis <- NULL
@@ -23,30 +24,19 @@ getOBISnames <- function() {
 
 #loading in ATN Data
 loadATN <- function(list_species){
-  print("reached load function")
-  atn_data <- read.csv('../all_ATN.csv', stringsAsFactors = F)
-  colnames(atn_data)[8] <- "decimalLongitude"
-  colnames(atn_data)[9] <- "decimalLatitude"
-  colnames(atn_data)[1] <- "species"
-  
-  atn_data$decimalLongitude <- as.numeric(atn_data$decimalLongitude)
-  atn_data$decimalLatitude <- as.numeric(atn_data$decimalLatitude)
-  
-  print("loaded in data")
+  atn_data <- read.csv('../atnPacificOnly.csv', stringsAsFactors = F)
   l <- list()
   for(i in 1:length(list_species)) {
     s <- atn_data %>% filter(species == list_species[i])
     l[[i]] <- s
   }
-  print("got species")
-  print(bind_rows(l))
   return(bind_rows(l))
 }
 
 #gets common names for ATN
 getATNnames <- function() {
-  spec <- read.csv("../ATN_spec_cts.csv", stringsAsFactors = F)
-  return(spec$commonName)
+  spec <- read.csv("../atnPacificOnlySpecCounts.csv", stringsAsFactors = F)
+  return(spec$species)
 }
 
 # load OBIS data
@@ -150,7 +140,7 @@ pacificMapLines <- function(mytable) {
     pal <- c(pal, ipal)
   }
   
-  for (i in 1:length(inds)) {
+  for (i in 1:length(inds[1:30])) {
     m <- m %>% addPolylines(data = mytable[mytable$serialNumber == inds[i],],
                             ~decimalLongitude, ~decimalLatitude, 
                             popup = ~as.character(species),
