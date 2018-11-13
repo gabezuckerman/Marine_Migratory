@@ -1,5 +1,7 @@
 setwd('/Users/ewesteen/Dropbox/MMA')
 
+rm(list = ls())
+
 library(raster);
 library(rgdal);
 library(adehabitatLT);
@@ -21,8 +23,7 @@ focalSp$time <- gsub("Z" , "", focalSp$time)
 focalSp$time <- as.POSIXct(strptime(focalSp$time,format="%Y-%m-%d_%H:%M:%S"))
 
 
-focalSp <- focalSp[order(focalSp$time, decreasing = TRUE), ]
-
+focalSp <- focalSp[order(focalSp$time), ]
 
 
 timediff <- diff(focalSp$time)
@@ -39,24 +40,19 @@ xy[, 2] <- lat
 
 coordinates(move.df) <- xy
 ltraj <- as.ltraj(coordinates(move.df), move.df$Burst, id = move.df$ID)
-plot(ltraj[1])
+plot(ltraj)
 
 
 #########################################################
-
-
-
 ## brownian bridge simulation for a single individual
 
-
-turt <- subset(focalSp, focalSp$serialNumber == "57108")
+turt <- subset(focalSp, focalSp$serialNumber == unique(focalSp$serialNumber[1]))
 xy <- data.frame(X = as.numeric(turt$longitude), Y = as.numeric(turt$latitude))
 coordinates(xy) <- c("X", "Y")
 proj4string(xy) <- CRS("+proj=longlat +datum=WGS84")  ## for example
 res <- spTransform(xy, CRS("+proj=utm +zone=11 ellps=WGS84"))
 
 
-subset <- res[150:270]
 
 turt.BBMM = brownian.bridge(x= as.numeric(res$X), y= as.numeric(res$Y), time.lag= (turt$TimeDiff / 60), location.error = 20  , cell.size=100)
 bbmm.summary(turt.BBMM)
@@ -72,6 +68,17 @@ bbmm.map <- rasterFromXYZ(xyz)
 colScheme <- colorRampPalette(c("#0571b0", "#92c5de", "white", "orange", "red3"), bias=3)
 plot(bbmm.map, col=colScheme(100))
 
+#########################################################
+## dynamic brownian bridge
+
+head(turt)
+
+indiv.move <- move(x=res$X, y=res$Y, time=turt$time, proj=CRS("+proj=utm +zone=11 ellps=WGS84"), data=turt, animal=turt$serialNumber)
+
+dbbmm <- brownian.bridge.dyn(object=indiv.move, location.error=22, margin=7, window.size=19, ext = c(788997 , 1105414 , 1105414 , 2935019 ))
+
+
+plot(indiv.move)
 
 
 
@@ -79,23 +86,4 @@ plot(bbmm.map, col=colScheme(100))
 
 
 
-
-
-
-
-
-
-
-
-
-pacificMap <- function(obisTable) {
-  p <- pacificProcessing(obisTable)
-  m <- leaflet(data = p) %>% addTiles() %>%
-    addMarkers(~decimalLongitude, ~decimalLatitude, 
-               popup = ~as.character(species),
-               label = ~as.numeric(individualCount)) %>%
-    addProviderTiles(providers$Esri.OceanBasemap) %>%
-    setView(lng = 180, lat = 0, zoom = 1)
-  return(m)
-}
 
