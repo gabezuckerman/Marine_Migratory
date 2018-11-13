@@ -22,7 +22,7 @@ getOBISnames <- function() {
 
 #loading in ATN Data
 loadATN <- function(list_species){
-  atn_data <- read.csv('atnPacificOnly.csv', stringsAsFactors = F)
+  atn_data <- read.csv('../atnPacificOnly.csv', stringsAsFactors = F)
   l <- list()
   for(i in 1:length(list_species)) {
     s <- atn_data %>% filter(species == list_species[i])
@@ -33,7 +33,7 @@ loadATN <- function(list_species){
 
 #gets common names for ATN
 getATNnames <- function() {
-  spec <- read.csv("atnPacificOnlySpecCounts.csv", stringsAsFactors = F)
+  spec <- read.csv("../atnPacificOnlySpecCounts.csv", stringsAsFactors = F)
   return(spec$species)
 }
 
