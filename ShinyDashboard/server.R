@@ -11,6 +11,7 @@ library(leaflet)
 library(DT)
 library(resample)
 library(robis)
+library(lubridate)
 
 atn <- NULL
 obis <- NULL
@@ -27,6 +28,10 @@ loadATN <- function(list_species){
   colnames(atn_data)[8] <- "decimalLongitude"
   colnames(atn_data)[9] <- "decimalLatitude"
   colnames(atn_data)[1] <- "species"
+  
+  atn_data$decimalLongitude <- as.numeric(atn_data$decimalLongitude)
+  atn_data$decimalLatitude <- as.numeric(atn_data$decimalLatitude)
+  
   print("loaded in data")
   l <- list()
   for(i in 1:length(list_species)) {
@@ -119,7 +124,7 @@ pacificProcessing<- function(mytable) {
 }
 
 #creates a leaflet object from an obis or atn table
-pacificMap <- function(mytable) {
+pacificMapPoints <- function(mytable) {
   mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
   mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
   m <- leaflet(data = mytable) %>% addTiles() %>%
@@ -130,6 +135,34 @@ pacificMap <- function(mytable) {
     setView(lng = 180, lat = 0, zoom = 1)
   return(m)
 }
+
+pacificMapLines <- function(mytable) {
+  mytable <- mytable %>% arrange(time)
+  
+  mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
+  mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
+  m <- leaflet(data = mytable) %>% addTiles() 
+  
+  inds <- unique(mytable$serialNumber)
+  pal <- brewer.pal(min(length(inds), 12), "Paired")
+  ipal <- pal
+  while (length(pal) < length(inds)) {
+    pal <- c(pal, ipal)
+  }
+  
+  for (i in 1:length(inds)) {
+    m <- m %>% addPolylines(data = mytable[mytable$serialNumber == inds[i],],
+                            ~decimalLongitude, ~decimalLatitude, 
+                            popup = ~as.character(species),
+                            label = ~as.character(species),
+                            color = pal[i])
+  }
+  
+    m <- m %>% addProviderTiles(providers$Esri.OceanBasemap) %>%
+    setView(lng = 180, lat = 0, zoom = 1)
+  return(m)
+}
+
 
 
 server <- shinyServer(function(input, output, session) {
@@ -234,10 +267,10 @@ server <- shinyServer(function(input, output, session) {
     input$mapButton,
     output$map <- renderLeaflet({
       if(input$datasource == "ATN") {
-        pacificMap(atn)
+        pacificMapLines(atn)
       }
       else if(input$datasource == "OBIS") {
-        pacificMap(obis)
+        pacificMapPoints(obis)
       }
     })
   )
