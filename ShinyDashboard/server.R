@@ -11,6 +11,8 @@ library(leaflet)
 library(DT)
 library(resample)
 library(robis)
+library(lubridate)
+library(RColorBrewer)
 
 atn <- NULL
 obis <- NULL
@@ -112,7 +114,7 @@ pacificProcessing<- function(mytable) {
 }
 
 #creates a leaflet object from an obis or atn table
-pacificMap <- function(mytable) {
+pacificMapPoints <- function(mytable) {
   mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
   mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
   m <- leaflet(data = mytable) %>% addTiles() %>%
@@ -123,6 +125,34 @@ pacificMap <- function(mytable) {
     setView(lng = 180, lat = 0, zoom = 1)
   return(m)
 }
+
+pacificMapLines <- function(mytable) {
+  mytable <- mytable %>% arrange(time)
+  
+  mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
+  mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
+  m <- leaflet(data = mytable) %>% addTiles() 
+  
+  inds <- unique(mytable$serialNumber)
+  pal <- brewer.pal(min(length(inds), 12), "Paired")
+  ipal <- pal
+  while (length(pal) < length(inds)) {
+    pal <- c(pal, ipal)
+  }
+  
+  for (i in 1:length(inds[1:30])) {
+    m <- m %>% addPolylines(data = mytable[mytable$serialNumber == inds[i],],
+                            ~decimalLongitude, ~decimalLatitude, 
+                            popup = ~as.character(species),
+                            label = ~as.character(species),
+                            color = pal[i])
+  }
+  
+    m <- m %>% addProviderTiles(providers$Esri.OceanBasemap) %>%
+    setView(lng = 180, lat = 0, zoom = 1)
+  return(m)
+}
+
 
 
 server <- shinyServer(function(input, output, session) {
@@ -227,10 +257,10 @@ server <- shinyServer(function(input, output, session) {
     input$mapButton,
     output$map <- renderLeaflet({
       if(input$datasource == "ATN") {
-        pacificMap(atn)
+        pacificMapLines(atn)
       }
       else if(input$datasource == "OBIS") {
-        pacificMap(obis)
+        pacificMapPoints(obis)
       }
     })
   )
@@ -247,7 +277,6 @@ server <- shinyServer(function(input, output, session) {
   #   updateTabsetPanel(session, "navbar", 'tab4_val')
   # })
   
-  
   #downloads created map, not reacitve
   # output$downloadMap <- downloadHandler(
   #   filename = function() { paste0(main(),'.tif') },
@@ -257,3 +286,13 @@ server <- shinyServer(function(input, output, session) {
   #   }
   # )
 })
+
+### TODO
+# Ben:
+  # Slider to determine how many inds to plot
+  # Button to color by species vs inds
+  # Plot both OBIS and ATN at the same time
+# Gabe:
+  # Get everything in one pane
+# Erin:
+  # Get kernel density and BBMM into app (or give to Gabe to pu into app)
