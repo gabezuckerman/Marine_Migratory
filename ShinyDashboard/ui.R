@@ -14,9 +14,9 @@ library(shinythemes)
 
 ui <- dashboardPage(
   dashboardHeader(
-    title="Migratory Ocean Visuaization Tool",
+    title="MOViT",
     titleWidth = 300, tags$li(a(href = 'https://www.pewtrusts.org/en/projects/pew-bertarelli-ocean-legacy',
-                                img(src = 'pew.jpg',
+                                img(src = 'MOViT-theme.jpg',
                                     title = "Pew Bertarelli Ocean Legacy", height = "30px"),
                                 style = "padding-top:10px; padding-bottom:10px;"),
                               class = "dropdown")
