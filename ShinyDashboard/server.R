@@ -277,7 +277,6 @@ server <- shinyServer(function(input, output, session) {
   #   updateTabsetPanel(session, "navbar", 'tab4_val')
   # })
   
-  
   #downloads created map, not reacitve
   # output$downloadMap <- downloadHandler(
   #   filename = function() { paste0(main(),'.tif') },
@@ -287,3 +286,13 @@ server <- shinyServer(function(input, output, session) {
   #   }
   # )
 })
+
+### TODO
+# Ben:
+  # Slider to determine how many inds to plot
+  # Button to color by species vs inds
+  # Plot both OBIS and ATN at the same time
+# Gabe:
+  # Get everything in one pane
+# Erin:
+  # Get kernel density and BBMM into app (or give to Gabe to pu into app)
