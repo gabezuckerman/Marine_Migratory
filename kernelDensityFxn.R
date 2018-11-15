@@ -4,61 +4,42 @@ rm(list = ls())
 library(leaflet);
 library(rgdal);
 library(raster)
-library(adehabitatLT);
 library(adehabitatHR);
 library(dplyr);
 library(RColorBrewer)
 
 
 ATN_data <- read.csv("atnPacific_withUTMs.csv", header = TRUE, stringsAsFactors = FALSE)
+# unique(ATN_data$species)
 
-
-kernelDensity <- function(species, individuals, conf){
+plot.kernelDensity <- function(species, individuals, conf){
   
-  focalSp <- ATN_data[ATN_data$species  == species , ]
+  focalSp <- ATN_data[ATN_data$species == species , ]
   focalSp <- na.omit(focalSp)
-  focalSp$time <- gsub("T" , "_", focalSp$time)
-  focalSp$time <- gsub("Z" , "", focalSp$time)
-  focalSp$time <- as.POSIXct(strptime(focalSp$time,format="%Y-%m-%d_%H:%M:%S"))
-  indivs <- unique(focalSp$serialNumber)
   
-  sequence <- 1 : individuals
+  sequence <- unique(focalSp$serialNumber)[order(table(focalSp$serialNumber), decreasing = TRUE)][1:individuals]
+  indiv <- subset(focalSp, focalSp$serialNumber %in% sequence)
+
+  idsp <- data.frame(indiv$serialNumber)
+  coordinates(idsp) <- cbind(indiv$UTM.east, indiv$UTM.north)
   
-  for ( i in sequence){
+  kd <- kernelUD(idsp, h = "href", grid = 10000, same4all = TRUE, kern = "bivnorm" )
+  homerange <- getverticeshr(kd, percent = conf)
     
-    indiv <- subset(focalSp, focalSp$serialNumber == indivs[i])
-    ptsMatrix <- matrix(data = c(indiv$UTM.east, indiv$UTM.north), ncol = 2 )	
-    res <- SpatialPoints(coords = ptsMatrix, proj4string = CRS(paste0("+proj=utm +zone=", median(indiv$UTMzone) ))) 
-    
-    kd <- kernelUD(res, h = "href", grid = 1000, same4all = TRUE, kern = "bivnorm" )
-    homerange <- getverticeshr(kd, percent = conf)
-    
-    if (i == sequence[1]) {
-      
-      indivPolys <- homerange
-      
-    }else{
-      
-      indivPolys <- rbind(indivPolys, homerange)	
-      
-    }
-  }
-  
-  
-  sdf_poly <- spTransform(indivPolys, CRS("+proj=longlat +datum=WGS84")) 
-  sdf_poly$id <- indivs[sequence]
+  proj4string(homerange) <- CRS(paste0("+proj=utm +zone=", median(indiv$UTMzone)))
+                                      
+  sdf_poly <- spTransform(homerange, CRS("+proj=longlat +datum=WGS84")) 
+  sdf_poly$id <- sequence
   pal <- brewer.pal(length(sequence), "Paired")
   
-  
   leaflet(sdf_poly) %>% addTiles() %>% addPolygons(weight = 3, opacity = 0.5, color = pal , fillColor = pal)  %>%  addLegend('bottomleft', colors = pal, labels = sdf_poly$id,  title = c(unique(focalSp$commonName)) )
-
-  
   
 }
 
+plot.kernelDensity("Blue Whale", 4, 90)
   
-  
-  
+plot.kernelDensity("Leatherback Sea Turtle", 4, 90)
+
   
   
   
