@@ -42,6 +42,3 @@ plot.kernelDensity("Leatherback Sea Turtle", 4, 90)
 
   
   
-  
-  
-  
