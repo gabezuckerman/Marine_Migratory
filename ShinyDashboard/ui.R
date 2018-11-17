@@ -57,8 +57,13 @@ ui <- dashboardPage(
                                
                              ), multiple = FALSE
                    ),
-                 actionButton("mapButton", "Map It!", width = "50%")
-                 
+                 actionButton("mapButton", "Map It!", width = "50%"),
+                 sliderInput("numInds", "Num. individuals per species",
+                             min = 1, max = 12,
+                             value = 2),
+                 radioButtons("colorby", "Color by:",
+                              choices = c("species", "individual"),
+                              inline = F, selected = "species")
         ))
     
   ),

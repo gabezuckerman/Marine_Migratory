@@ -126,29 +126,48 @@ pacificMapPoints <- function(mytable) {
   return(m)
 }
 
-pacificMapLines <- function(mytable) {
+pacificMapLines <- function(mytable, numInds = 5, cb = "species") {
   mytable <- mytable %>% arrange(time)
   
   mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
   mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
   m <- leaflet(data = mytable) %>% addTiles() 
   
-  inds <- unique(mytable$serialNumber)
-  pal <- brewer.pal(min(length(inds), 12), "Paired")
-  ipal <- pal
-  while (length(pal) < length(inds)) {
-    pal <- c(pal, ipal)
+  inds <- mytable %>% group_by(serialNumber, species) %>% count() %>% arrange(-n)
+  spec_opts <- unique(inds$species)
+  
+  if (cb == "species") {
+      pal <- c("#663ec4", "#bf3b3b", "#e0a831")
+      for (s in 1:length(spec_opts)) {
+        inds_to_plot <- inds[inds$species == spec_opts[s],]
+        for (i in 1:numInds) {
+          m <- m %>% addPolylines(data = mytable[mytable$serialNumber == 
+                                                   inds_to_plot$serialNumber[i],],
+                                  ~decimalLongitude, ~decimalLatitude, 
+                                  popup = ~as.character(species),
+                                  label = ~as.character(species),
+                                  color = pal[s])
+        }
+      }
+  } else {
+    pallettes <- c("YlGn", "RdPu", "PuBu", "BuPu", "Greys", "Oranges", "Reds")
+    for (s in 1:length(spec_opts)) {
+      pal <- brewer.pal(name = pallettes[s], n = min(numInds, 9))
+      pal <- rev(c(pal, pal))
+      inds_to_plot <- inds[inds$species == spec_opts[s],]
+      for (i in 1:numInds) {
+        m <- m %>% addPolylines(data = mytable[mytable$serialNumber == 
+                                                 inds_to_plot$serialNumber[i],],
+                                ~decimalLongitude, ~decimalLatitude, 
+                                popup = ~as.character(species),
+                                label = ~as.character(species),
+                                color = pal[i])
+      }
+    }
   }
   
-  for (i in 1:length(inds[1:30])) {
-    m <- m %>% addPolylines(data = mytable[mytable$serialNumber == inds[i],],
-                            ~decimalLongitude, ~decimalLatitude, 
-                            popup = ~as.character(species),
-                            label = ~as.character(species),
-                            color = pal[i])
-  }
-  
-    m <- m %>% addProviderTiles(providers$Esri.OceanBasemap) %>%
+
+  m <- m %>% addProviderTiles(providers$Esri.OceanBasemap) %>%
     setView(lng = 180, lat = 0, zoom = 1)
   return(m)
 }
@@ -255,9 +274,10 @@ server <- shinyServer(function(input, output, session) {
   
   observeEvent(
     input$mapButton,
+
     output$map <- renderLeaflet({
       if(input$datasource == "ATN") {
-        pacificMapLines(atn)
+        pacificMapLines(atn, numInds = input$numInds, cb = input$colorby)
       }
       else if(input$datasource == "OBIS") {
         pacificMapPoints(obis)
