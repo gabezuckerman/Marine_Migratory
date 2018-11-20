@@ -9,6 +9,7 @@ library(mapview)
 library(broom)
 library(leaflet)
 library(shinythemes)
+library(leaflet.extras)
 
 
 

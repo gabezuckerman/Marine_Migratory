@@ -1,12 +1,7 @@
 require(shiny)
-require(shinydashboard)
-require(shinyjs)
 library(tidyverse)
 library(glue)
 library(sf)
-library(raster)
-library(mapview)
-library(broom)
 library(leaflet)
 library(leaflet.extras)
 library(DT)
@@ -28,9 +23,9 @@ getOBISnames <- function() {
 add_grid_to_points <- function(obs_data, degree) {
   obs_data$block <- (floor(obs_data$decimalLatitude / degree) + 
                        1000 * floor(obs_data$decimalLongitude / degree)) %>% 
-      as.factor() %>% as.numeric()
+    as.factor() %>% as.numeric()
   obs_data$blockID <- floor(obs_data$decimalLatitude / degree) + 
-                       1000 * floor(obs_data$decimalLongitude / degree)
+    1000 * floor(obs_data$decimalLongitude / degree)
   return(obs_data)
 }
 
@@ -50,7 +45,9 @@ loadATN <- function(list_species){
     s <- atn_data %>% filter(species == list_species[i])
     l[[i]] <- s
   }
-  return(bind_rows(l))
+  table <- bind_rows(l)
+  print("done!")
+  return(table)
 }
 
 #gets common names for ATN
@@ -82,6 +79,7 @@ loadOBIS <- function(list_of_species) {
   obis <- bind_rows(species_data)
   obis$decimalLongitude <- as.numeric(obis$decimalLongitude)
   obis$decimalLongitude <- map(obis$decimalLongitude, shift)
+  print("done!")
   return(obis)
 }
 
@@ -140,12 +138,12 @@ pacificMapPoints <- function(mytable, m = NULL, pass = F) {
   if (is.null(m)) m <- leaflet() %>% addTiles()
   m <- m %>%
     addCircleMarkers(data = mytable, ~decimalLongitude, ~decimalLatitude, 
-               radius = 3, stroke = F, opacity = 0.2,
-               popup = ~as.character(species),
-               label = ~as.character(species))
+                     radius = 3, stroke = F, opacity = 0.2,
+                     popup = ~as.character(species),
+                     label = ~as.character(species))
   if (!pass) m <- m %>% 
-                  addProviderTiles(providers$Esri.OceanBasemap) %>%
-                  setView(lng = 180, lat = 0, zoom = 2)
+    addProviderTiles(providers$Esri.OceanBasemap) %>%
+    setView(lng = 180, lat = 0, zoom = 2)
   return(m)
 }
 
@@ -165,16 +163,16 @@ pacificMapHeatmap <- function(mytable, m = NULL, pass = F) {
   blocks_ltlng$col <- pal[pmin(floor(log(blocks_ltlng$n)), 9) + 1]
   
   blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] <- 
-      blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] - 1000
-
+    blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] - 1000
+  
   m <- m %>%
     addRectangles(data = blocks_ltlng, 
                   lng1=~decimalLongitude-(degree/2), lng2=~decimalLongitude+(degree/2),
                   lat1=~decimalLatitude-(degree/2), lat2=~decimalLatitude+(degree/2),
                   fillColor = ~col, fillOpacity = 0.5, stroke = F)
   if (!pass) m <- m %>% 
-                  addProviderTiles(providers$Esri.OceanBasemap) %>%
-                  setView(lng = 180, lat = 0, zoom = 2)
+    addProviderTiles(providers$Esri.OceanBasemap) %>%
+    setView(lng = 180, lat = 0, zoom = 2)
   return(m)
 }
 
@@ -190,18 +188,18 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
   spec_opts <- unique(inds$species)
   
   if (cb == "species") {
-      pal <- c("#663ec4", "#bf3b3b", "#e0a831")
-      for (s in 1:length(spec_opts)) {
-        inds_to_plot <- inds[inds$species == spec_opts[s],]
-        for (i in 1:numInds) {
-          m <- m %>% addPolylines(data = mytable[mytable$serialNumber == 
-                                                   inds_to_plot$serialNumber[i],],
-                                  ~decimalLongitude, ~decimalLatitude, 
-                                  popup = ~as.character(species),
-                                  label = ~as.character(species),
-                                  color = pal[s])
-        }
+    pal <- c("#663ec4", "#bf3b3b", "#e0a831")
+    for (s in 1:length(spec_opts)) {
+      inds_to_plot <- inds[inds$species == spec_opts[s],]
+      for (i in 1:numInds) {
+        m <- m %>% addPolylines(data = mytable[mytable$serialNumber == 
+                                                 inds_to_plot$serialNumber[i],],
+                                ~decimalLongitude, ~decimalLatitude, 
+                                popup = ~as.character(species),
+                                label = ~as.character(species),
+                                color = pal[s])
       }
+    }
   } else {
     pallettes <- c("YlGn", "RdPu", "PuBu", "BuPu", "Greys", "Oranges", "Reds")
     for (s in 1:length(spec_opts)) {
@@ -218,7 +216,7 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
       }
     }
   }
-
+  
   m <- m %>% addProviderTiles(providers$Esri.OceanBasemap) %>%
     setView(lng = 180, lat = 0, zoom = 2)
   return(m)
@@ -227,47 +225,18 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
 
 
 server <- shinyServer(function(input, output, session) {
-  
-  values <- reactiveValues(selectedTab = 1)
-  #syncs sidebar and main tabs
-  observeEvent(input$navbar, {
-    toggle("tab1_sidebar", condition = input$navbar == "tab1_val")
-    toggle("tab2_sidebar", condition = input$navbar == "tab2_val")
-    toggle("tab3_sidebar", condition = input$navbar == "tab3_val")
+  output$map <- renderLeaflet({
+    leaflet() %>%
+      addProviderTiles(providers$Esri.OceanBasemap) %>%
+      setView(lng = 180, lat = 0, zoom = 2)
   })
-  
-  #starting text on each of the main tabs
-  output$tab1_valuebox <- renderValueBox({
-    box(width = 12, title = "Identifying Potential Locations for New Marine Protected Areas",  solidHeader = TRUE, status = "info", align = "center",
-        "An open-source database approach", br(), 'In cooperation with Emily Owen and Stacy Baez of the Pew Bertarelli Ocean Legacy'
-    )
-  })
-  
-  
-  output$info_box <- renderValueBox({
-    box(width = 12, solidHeader = TRUE, status = "info", align = "center",
-        'Created by Ben Goldstein, Erin Westeen and Gabe Zuckerman')
-  })
-  
-  output$tab2_valuebox <- renderValueBox({
-    box(status = "info", 'Choose data source and select which species you would like download.', br(), 'Please limit to 3 species', br(),
-        'Alternatively, load additional data in the form of a .csv file.',
-        solidHeader = TRUE, align = "left"
-    )
-  })
-  
-  output$tab3_valuebox <- renderValueBox({
-    box(status = 'info', 'Choose map type to begin mapping process.', br(), 
-        'You chose the following species:', br(), input$species)
-  })
-  
   
   output$datasource <- renderUI({
     if(input$datasource == "ATN") {
       selectInput("species", "Species (ATN)",
                   choices = c(
                     `Select One or More` = "",
-                   getATNnames()
+                    getATNnames()
                   ), multiple = TRUE)
     }
     else if(input$datasource == "OBIS") {
@@ -289,25 +258,41 @@ server <- shinyServer(function(input, output, session) {
     }
   })
   
-    
-    observeEvent(
-      input$loadData, 
-      if(input$datasource == "OBIS") {
-        obis <<- pacificProcessing(loadOBIS(input$species))
-        output$OBISTable <- renderDataTable(obis, options = list(scrollX = TRUE))
-      }
-      else if(input$datasource == "ATN") {
-        atn <<- loadATN(input$species)
-        output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
-      }
-      else if(input$datasource == "Both") {
-        atn <<- loadATN(input$species)
-        obis <<- loadOBIS(input$species)
-        output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
-      }
-
-    )
   
+  observeEvent(
+    input$loadData, 
+    if(input$datasource == "OBIS") {
+      obis <<- pacificProcessing(loadOBIS(input$species))
+      output$loaded <- renderText("Done!")
+      #output$OBISTable <- renderDataTable(obis, options = list(scrollX = TRUE))
+    }
+    else if(input$datasource == "ATN") {
+      atn <<- loadATN(input$species)
+      output$loaded <- renderText("Done!")
+      #output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
+    }
+    else if(input$datasource == "Both") {
+      atn <<- loadATN(input$species)
+      obis <<- pacificProcessing(loadOBIS(input$species))
+      output$loaded <- renderText("Done!")
+      #output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
+    }
+    
+  )
+  
+  
+  observeEvent(
+    input$clear,
+    if (TRUE) {
+      output$map <- renderLeaflet({
+        leaflet() %>%
+          addProviderTiles(providers$Esri.OceanBasemap) %>%
+          setView(lng = 180, lat = 0, zoom = 2)
+      })
+      atn <<- NULL
+      obis <<- NULL
+    }
+  )
   
   
   observeEvent(
@@ -321,7 +306,7 @@ server <- shinyServer(function(input, output, session) {
         if (input$maptype == "point") pacificMapPoints(obis)
         else pacificMapHeatmap(obis)
       } else if (input$datasource == "Both") {
-          pacificMapLines(atn, numInds = input$numInds, cb = input$colorby,
+        pacificMapLines(atn, numInds = input$numInds, cb = input$colorby,
                         m = pacificMapHeatmap(obis, pass = T))
       }
     })
@@ -339,8 +324,8 @@ server <- shinyServer(function(input, output, session) {
 
 ### TODO
 # Ben:
-  # Plot both OBIS and ATN at the same time
+# Plot both OBIS and ATN at the same time
 # Gabe:
-  # Get everything in one pane
+# Get everything in one pane
 # Erin:
-  # Get kernel density and BBMM into app (or give to Gabe to pu into app)
+# Get kernel density and BBMM into app (or give to Gabe to pu into app)
