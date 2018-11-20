@@ -9,12 +9,12 @@ library(dplyr);
 library(RColorBrewer)
 
 
-ATN_data <- read.csv("atnPacific_withUTMs.csv", header = TRUE, stringsAsFactors = FALSE)
+ATN_data <- read.csv("../atnPacific_withUTMs.csv", header = TRUE, stringsAsFactors = FALSE)
 # unique(ATN_data$species)
 
 
 
-plot.mcp <- function(species, individuals, conf){
+plot.mcp <- function(species, individuals, conf) {
   
   focalSp <- ATN_data[ATN_data$species == species , ]
   focalSp <- na.omit(focalSp)
@@ -49,8 +49,9 @@ plot.mcp <- function(species, individuals, conf){
     mcp_poly$id <- sequence
     pal <- brewer.pal(length(sequence), "Paired")
     
-    leaflet(mcp_poly) %>% addTiles() %>% addPolygons(weight = 3, opacity = 0.5, color = pal , fillColor = pal)  %>%  addLegend('bottomleft', colors = pal, labels = mcp_poly$id,  title = c(unique(focalSp$commonName)) )
+    m <- leaflet(mcp_poly) %>% addTiles() %>% addPolygons(weight = 3, opacity = 0.5, color = pal , fillColor = pal)  %>%  addLegend('bottomleft', colors = pal, labels = mcp_poly$id,  title = c(unique(focalSp$commonName)) )
   
+    return(m)
 }
 
 
