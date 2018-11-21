@@ -258,6 +258,35 @@ server <- shinyServer(function(input, output, session) {
     }
   })
   
+    output$mptp <- renderUI({
+    if(input$datasource == "ATN") {
+      selectInput("maptype", "Map Types", 
+                  choices = c(
+                    `Select One` = "",
+                    `Heat Map` = "heat",
+                    `Point Map` = "point",
+                    `Trajectories` = "traj"
+                    
+                  ), multiple = FALSE)
+    }
+    else if(input$datasource == "OBIS") {
+      selectInput("maptype", "Map Types", 
+                  choices = c(
+                    `Select One` = "",
+                    `Heat Map` = "heat",
+                    `Point Map` = "point"
+                  ), multiple = FALSE)    }
+    
+    else if(input$datasource == "Both") {
+      actionButton("loadBoth", "Load")
+      selectInput("maptype", "Map Types", 
+                  choices = c(
+                    `Select One` = "",
+                    `Joint Map` = "joint"
+                  ), multiple = FALSE)    }
+  })
+
+  
   
   observeEvent(
     input$loadData, 

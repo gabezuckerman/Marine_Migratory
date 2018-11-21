@@ -25,20 +25,12 @@ ui <- shinyUI(
                                         actionButton("loadData", "Load"),
                                         uiOutput("loaded", inline = T),
                                         #uiOutput("loadData"),
-                                        h2("Map Options"),
-                                        selectInput("maptype", "Map Types", 
-                                                    choices = c(
-                                                      `Select One` = "",
-                                                      `Heat Map` = "heat",
-                                                      `Point Map` = "point",
-                                                      `Trajectories` = "traj"
-                                                      
-                                                    ), multiple = FALSE
-                                        ),
+                                        h2("Map Type"),
+                                        uiOutput("mptp"),
                                         actionButton("mapButton", "Map It!", width = "50%"),
-                                        # sliderInput("numInds", "Num. individuals per species",
-                                        #             min = 1, max = 12,
-                                        #             value = 2),
+                                        sliderInput("numInds", "Num. individuals per species",
+                                                    min = 1, max = 12,
+                                                    value = 2),
                                         radioButtons("colorby", "Color by:",
                                                      choices = c("species", "individual"),
                                                      inline = F, selected = "species"),
