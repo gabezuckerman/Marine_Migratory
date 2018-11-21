@@ -46,7 +46,6 @@ loadATN <- function(list_species){
     l[[i]] <- s
   }
   table <- bind_rows(l)
-  print("done!")
   return(table)
 }
 
@@ -79,7 +78,6 @@ loadOBIS <- function(list_of_species) {
   obis <- bind_rows(species_data)
   obis$decimalLongitude <- as.numeric(obis$decimalLongitude)
   obis$decimalLongitude <- map(obis$decimalLongitude, shift)
-  print("done!")
   return(obis)
 }
 
@@ -320,6 +318,7 @@ server <- shinyServer(function(input, output, session) {
       })
       atn <<- NULL
       obis <<- NULL
+      output$loaded <- NULL
     }
   )
   
