@@ -1,3 +1,20 @@
+require(shiny)
+library(tidyverse)
+library(glue)
+library(sf)
+library(leaflet)
+library(leaflet.extras)
+library(DT)
+library(resample)
+library(robis)
+library(lubridate)
+library(RColorBrewer)
+library(adehabitatHR)
+library(gridExtra)
+library(rgdal)
+library(raster)
+library(maptools)
+
 ui <- shinyUI(
   navbarPage(title = div(
                   id = "logo",
