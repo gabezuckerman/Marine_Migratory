@@ -1,12 +1,17 @@
-
-# Retrieve the names of species for which OBIS data is available
+# getOBISnames()
+# Summary: Retrieve the names of species for which OBIS data is available
+#          from a pre-processed summary file of OBIS pacific data.
 getOBISnames <- function() {
   spec <- read.csv("../Data/obis_spec_cts_named.csv", stringsAsFactors = F)
   return(spec$commonName)
 }
 
-# Take a dataframe with columns for decimalLatitude and decimalLongitude and
-#   assign each a block ID based on a grid
+# add_grid_to_points(obs_data, degree)
+# Summary: Take a dataframe with columns for decimalLatitude and decimalLongitude
+#          and assign each a block ID based on a grid with specified resolution
+# obs_data: an observational data frame with columns for decimalLongitude and 
+#           decimalLatitude
+# degree: a decimal number to specify the decimal degree dimensions of grid cells
 add_grid_to_points <- function(obs_data, degree) {
   obs_data$block <- (floor(obs_data$decimalLatitude / degree) + 
                        1000 * floor(obs_data$decimalLongitude / degree)) %>% 
