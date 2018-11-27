@@ -36,11 +36,13 @@ ui <- shinyUI(
                                         
                                         h2("Load Data"),
                                         
-                                        radioButtons("datasource", "If you are using opensource, which datasource would you like to use?",
-                                                     choices = c("OBIS", "ATN", "Both"), inline = T),
+                                        radioButtons("datasource", "Which datasource would you like to use?",
+                                                     choices = c("OBIS", "ATN", "ATN and OBIS", "Load in .csv file"), inline = T),
                                         uiOutput("datasource"),
                                         actionButton("loadData", "Load"),
                                         uiOutput("loaded", inline = T),
+                                      
+                                        
                                         #uiOutput("loadData"),
                                         h2("Map Type"),
                                         uiOutput("mptp"),

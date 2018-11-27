@@ -106,6 +106,9 @@ shift <- function(longitude) {
 
 #need to pre-process atn data
 pacificProcessing<- function(mytable) {
+  if(is.null(mytable)) {
+    return(NULL)
+  }
   #reformats longitude
   mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
   mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)

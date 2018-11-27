@@ -18,6 +18,8 @@ library(rsconnect)
 
 atn <- NULL
 obis <- NULL
+customTable <- NULL
+
 #get commonNames for OBIS
 source('mmafunctions.R')
 
@@ -45,14 +47,19 @@ server <- shinyServer(function(input, output, session) {
                   ), multiple = TRUE)
     }
     
-    else if(input$datasource == "Both") {
+    else if(input$datasource == "ATN and OBIS") {
       actionButton("loadBoth", "Load")
-      selectInput("species", "Species (OBIS and ATN)",
+      selectInput("species", "Species (ATN and OBIS)",
                   choices = c(
                     `Select One or More` = "",
                     getATNnames()
                   ), multiple = TRUE)
     }
+    else if (input$datasource == "Load in .csv file") {
+      fileInput("file", label =  HTML("Must include following columns: 'species', 'decimalLongitude', and
+                'decimalLatitude.' <br/> Don't forget to click Load!"), accept = '.csv')
+      
+    } 
   })
   
     output$mptp <- renderUI({
@@ -74,13 +81,21 @@ server <- shinyServer(function(input, output, session) {
                     `Point Map` = "point"
                   ), multiple = FALSE)    }
     
-    else if(input$datasource == "Both") {
-      actionButton("loadBoth", "Load")
+    else if(input$datasource == "ATN and OBIS") {
+      #actionButton("loadBoth", "Load")
       selectInput("maptype", "Map Types", 
                   choices = c(
                     `Select One` = "",
                     `Joint Map` = "joint"
                   ), multiple = FALSE)    }
+      else if(input$datasource == "Load in .csv file") {
+        selectInput("maptype", "Map Types", 
+                    choices = c(
+                      `Select One` = "",
+                      `Heat Map` = "heat",
+                      `Point Map` = "point"
+                    ), multiple = FALSE)
+      }
   })
 
   
@@ -97,11 +112,22 @@ server <- shinyServer(function(input, output, session) {
       output$loaded <- renderText("Done!")
       #output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
     }
-    else if(input$datasource == "Both") {
+    else if(input$datasource == "ATN and OBIS") {
       atn <<- loadATN(input$species)
       obis <<- pacificProcessing(loadOBIS(input$species))
       output$loaded <- renderText("Done!")
       #output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
+    }
+    else if(input$datasource == "Load in .csv file") {
+      #use loaded in csv and process
+      customTable <<- reactive({
+        inFile <- input$file
+        if (is.null(inFile))
+          return(NULL)
+        tbl <- read.csv(inFile$datapath, header=input$header, sep=input$sep,  dec = input$dec)
+        return(tbl)
+      })
+      output$loaded <- renderText("Done!")
     }
     
   )
@@ -117,6 +143,7 @@ server <- shinyServer(function(input, output, session) {
       })
       atn <<- NULL
       obis <<- NULL
+      customTable <<- NULL
       output$loaded <- NULL
     }
   )
@@ -133,9 +160,13 @@ server <- shinyServer(function(input, output, session) {
       } else if (input$datasource == "OBIS") {
         if (input$maptype == "point") pacificMapPoints(obis)
         else pacificMapHeatmap(obis)
-      } else if (input$datasource == "Both") {
+      } else if (input$datasource == "ATN and OBIS") {
         pacificMapLines(atn, numInds = input$numInds, cb = input$colorby,
                         m = pacificMapHeatmap(obis, pass = T))
+      }
+      else if (input$datasource == "Load in .csv file") {
+        if (input$maptype == "heat") pacificMapHeatmap(customTable)
+        else if (input$maptype == "point") pacificMapPoints(customTable)
       }
     })
   )
