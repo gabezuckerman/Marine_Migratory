@@ -1,7 +1,7 @@
 
 # Retrieve the names of species for which OBIS data is available
 getOBISnames <- function() {
-  spec <- read.csv("../Data/obis_spec_cts_named.csv", stringsAsFactors = F)
+  spec <- read.csv("Data/obis_spec_cts_named.csv", stringsAsFactors = F)
   return(spec$commonName)
 }
 
@@ -26,7 +26,7 @@ add_latlong_to_grid <- function(gridsummary, degree) {
 
 #loading in ATN Data
 loadATN <- function(list_species){
-  atn_data <- read.csv('../Data/atnPacific_withUTMs.csv', stringsAsFactors = F)
+  atn_data <- read.csv('Data/atnPacific_withUTMs.csv', stringsAsFactors = F)
   atn_data$decimalLongitude[atn_data$decimalLongitude < 0] <- 
     atn_data$decimalLongitude[atn_data$decimalLongitude < 0] + 360
   l <- list()
@@ -40,7 +40,7 @@ loadATN <- function(list_species){
 
 #gets common names for ATN
 getATNnames <- function() {
-  spec <- read.csv("../Data/atnPacificOnlySpecCounts.csv", stringsAsFactors = F)
+  spec <- read.csv("Data/atnPacificOnlySpecCounts.csv", stringsAsFactors = F)
   return(spec$species)
 }
 
@@ -50,7 +50,7 @@ loadOBIS <- function(list_of_species) {
     return(NULL)
   }
   species_data <- list()
-  spec_names <- read.csv("../Data/obis_spec_cts_named.csv")
+  spec_names <- read.csv("Data/obis_spec_cts_named.csv")
   for (i in 1:length(list_of_species)) {
     spec_specified <- list_of_species[[i]]
     if (toupper(spec_specified) %in% toupper(spec_names$commonName)) {

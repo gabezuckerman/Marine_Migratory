@@ -14,6 +14,7 @@ library(gridExtra)
 library(rgdal)
 library(raster)
 library(maptools)
+library(rsconnect)
 
 atn <- NULL
 obis <- NULL
