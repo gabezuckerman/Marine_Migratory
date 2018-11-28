@@ -21,7 +21,7 @@ obis <- NULL
 customTable <- NULL
 
 #get commonNames for OBIS
-source('mmafunctions.R')
+source('movit-functions.R')
 
 server <- shinyServer(function(input, output, session) {
   output$map <- renderLeaflet({
