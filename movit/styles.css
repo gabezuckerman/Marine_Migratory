@@ -12,6 +12,7 @@ div.outer {
   padding: 0;
 }
 
+
 /* Customize fonts */
 body, label, input, button, select { 
   font-family: 'Helvetica Neue', Helvetica;
@@ -21,7 +22,7 @@ h1, h2, h3, h4 { font-weight: 400; }
 
 #logo{
   position: fixed;
-  left: 0px;
+  right: 40px;
   top: -1px;
 }
 

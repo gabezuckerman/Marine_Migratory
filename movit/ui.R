@@ -23,12 +23,14 @@ ui <- shinyUI(
                       width = 250
                      )
                   ),
+             windowTitle = "MOViT",
             tabPanel("Interactive Map",
                       div(class="outer",
                           tags$head(
                             # Include custom CSS from Superzip example
                             includeCSS("styles.css")
                           ),
+                          tags$head(tags$link(rel="shortcut icon", href="favicon.ico")),
                           leafletOutput("map", width="100%", height="100%"),
                           absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                         draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
@@ -61,8 +63,15 @@ ui <- shinyUI(
                                'In association with Emily Owen and Stacy Baez of the Pew Bertarelli Ocean Legacy'
                       )
              ),
-            tags$head(tags$style('.navbar-nav {width: 90%;}
-                                    .navbar-nav :first-child{float:right}'))
+            tabPanel("Information",
+                     uiOutput("info"),
+                     img(
+                       src = "info.png",
+                       height = 600,
+                       width = 900,
+                       align = "center"),
+                     uiOutput("info2"))
+            
   )
 )
   
