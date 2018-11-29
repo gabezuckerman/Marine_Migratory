@@ -122,8 +122,7 @@ server <- shinyServer(function(input, output, session) {
       }
     })
 
-  
-  
+    
   observeEvent(
     input$loadData, 
     if(input$datasource == "OBIS") {
