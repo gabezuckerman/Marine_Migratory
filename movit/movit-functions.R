@@ -112,6 +112,8 @@ pacificProcessing<- function(mytable) {
   #reformats longitude
   mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
   mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
+  mytable$decimalLongitude <- map(mytable$decimalLongitude, shift)
+
   #keeps rows in pacific determined by lon, lat
   pacific <- map2(mytable$decimalLongitude, mytable$decimalLatitude, ~inPacific(.x, .y))
   head(mytable)

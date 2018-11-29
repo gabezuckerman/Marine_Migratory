@@ -120,13 +120,9 @@ server <- shinyServer(function(input, output, session) {
     }
     else if(input$datasource == "Load in .csv file") {
       #use loaded in csv and process
-      customTable <<- reactive({
-        inFile <- input$file
-        if (is.null(inFile))
-          return(NULL)
-        tbl <- read.csv(inFile$datapath, header=input$header, sep=input$sep,  dec = input$dec)
-        return(tbl)
-      })
+      inFile <- input$file
+      print(inFile)
+      customTable <<- read.csv(inFile$datapath) %>% pacificProcessing()
       output$loaded <- renderText("Done!")
     }
     
@@ -170,16 +166,7 @@ server <- shinyServer(function(input, output, session) {
       }
     })
   )
-  output$info <- renderUI({
-    tagList("For more information please see ", url)
-  })
-  url <- a("our GitHub Wiki", href="https://github.com/gabezuckerman/Marine_Migratory/wiki")
-  output$info2 <- renderUI({
-    HTML("From top left (clockwise): California sea lions, Humpback whale, Black footed albatross, Sea otters<br/>Photo credit: ...")
-  })
 })
-  
-  
 
 ### TODO
 # Ben:
