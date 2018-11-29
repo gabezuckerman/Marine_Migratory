@@ -267,7 +267,7 @@ plot.mcp <- function(atn, numInds, conf){
     pal <- c(brewer.pal(12, "Paired"),  brewer.pal(extra, "Paired") )
   }
   
-  leaflet(polyToPlot) %>% addTiles() %>% 
+  leaflet(polyToPlot) %>% addProviderTiles(providers$Esri.OceanBasemap) %>% 
     addPolygons(weight = .3, opacity = 1 , color = pal , fillColor = pal) %>% 
-    addLegend('bottomleft', colors = pal[1:individuals], labels = sequence,  title = c(unique(focalSp$species)))
+    addLegend('topleft', colors = pal[1:individuals], labels = sequence,  title = c(unique(focalSp$species)))
 }

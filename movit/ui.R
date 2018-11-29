@@ -48,13 +48,10 @@ ui <- shinyUI(
                                         #uiOutput("loadData"),
                                         h2("Map Type"),
                                         uiOutput("mptp"),
+                                        uiOutput("confidence"),
+                                        uiOutput("numSpecies"),
+                                        uiOutput("colorby"),
                                         actionButton("mapButton", "Map It!", width = "50%"),
-                                        sliderInput("numInds", "Num. individuals per species",
-                                                    min = 1, max = 12,
-                                                    value = 2),
-                                        radioButtons("colorby", "Color by:",
-                                                     choices = c("species", "individual"),
-                                                     inline = F, selected = "species"),
                                         actionButton("clear", "Clear Data and Map")
                           )
                       ),
@@ -67,8 +64,8 @@ ui <- shinyUI(
                      uiOutput("info"),
                      img(
                        src = "info.png",
-                       height = 600,
-                       width = 900,
+                       height = 550,
+                       width = 825,
                        align = "center"),
                      uiOutput("info2"))
             
