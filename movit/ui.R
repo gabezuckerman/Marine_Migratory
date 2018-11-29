@@ -15,6 +15,9 @@ library(rgdal)
 library(raster)
 library(maptools)
 
+#file for saving map
+jsfile <- "https://rawgit.com/rowanwins/leaflet-easyPrint/gh-pages/dist/bundle.js" 
+
 ui <- shinyUI(
   navbarPage(title = div(
                   id = "logo",
@@ -31,6 +34,7 @@ ui <- shinyUI(
                             includeCSS("styles.css")
                           ),
                           tags$head(tags$link(rel="shortcut icon", href="favicon.ico")),
+                          tags$head(tags$script(src = jsfile)),
                           leafletOutput("map", width="100%", height="100%"),
                           absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
                                         draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",

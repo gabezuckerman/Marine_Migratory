@@ -15,19 +15,32 @@ library(rgdal)
 library(raster)
 library(maptools)
 library(rsconnect)
+library(htmlwidgets)
 
 atn <- NULL
 obis <- NULL
 customTable <- NULL
 
-#get commonNames for OBIS
+
+
+#get functions
 source('movit-functions.R')
 
 server <- shinyServer(function(input, output, session) {
   output$map <- renderLeaflet({
     leaflet() %>%
       addProviderTiles(providers$Esri.OceanBasemap) %>%
-      setView(lng = 180, lat = 0, zoom = 2)
+      setView(lng = 180, lat = 0, zoom = 2) %>%
+      onRender(
+        "function(el, x) {
+        L.easyPrint({
+        sizeModes: ['A4Landscape', 'A4Portrait'],
+        filename: 'MOViTmap',
+        exportOnly: true,
+        hideControlContainer: false
+        }).addTo(this);
+  }"
+    )
   })
   
   output$datasource <- renderUI({
@@ -122,25 +135,22 @@ server <- shinyServer(function(input, output, session) {
       }
     })
 
-  
-  
+    
+    
   observeEvent(
     input$loadData, 
     if(input$datasource == "OBIS") {
       obis <<- pacificProcessing(loadOBIS(input$species))
       output$loaded <- renderText("Done!")
-      #output$OBISTable <- renderDataTable(obis, options = list(scrollX = TRUE))
     }
     else if(input$datasource == "ATN") {
       atn <<- loadATN(input$species)
       output$loaded <- renderText("Done!")
-      #output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
     }
     else if(input$datasource == "ATN and OBIS") {
       atn <<- loadATN(input$species)
       obis <<- pacificProcessing(loadOBIS(input$species))
       output$loaded <- renderText("Done!")
-      #output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
     }
     else if(input$datasource == "Load in .csv file") {
       #use loaded in csv and process
