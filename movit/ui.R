@@ -49,7 +49,7 @@ ui <- shinyUI(
                                         h2("Map Type"),
                                         uiOutput("mptp"),
                                         uiOutput("confidence"),
-                                        uiOutput("numSpecies"),
+                                        uiOutput("numInds"),
                                         uiOutput("colorby"),
                                         actionButton("mapButton", "Map It!", width = "50%"),
                                         actionButton("clear", "Clear Data and Map")

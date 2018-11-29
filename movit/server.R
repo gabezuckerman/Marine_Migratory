@@ -100,21 +100,21 @@ server <- shinyServer(function(input, output, session) {
     
     output$confidence <- renderUI({
       if (input$datasource == "ATN" && input$maptype == "kernel") {
-        sliderInput("confidence", "Condifence Interval Percentage",
+        sliderInput("confidence", "Confidence Interval Percentage",
                     min = 1, max = 100,
                     value = 95)
       }
     })
     
     output$colorby <- renderUI({
-      if(input$datasource == "ATN" && (input$maptype == "traj" || input$maptype == "kernel")) {
+      if(input$datasource == "ATN" && (input$maptype == "traj")) {
             radioButtons("colorby", "Color by:",
              choices = c("species", "individual"),
              inline = F, selected = "species")
       }
     })
     
-    output$numSpecies <- renderUI({
+    output$numInds <- renderUI({
       if((input$datasource == "ATN" ||  input$datasource == "ATN and OBIS") && (input$maptype == "traj" || input$maptype == "kernel" || input$maptype == "joint")) {
         sliderInput("numInds", "Num. individuals per species",
                     min = 1, max = 12,

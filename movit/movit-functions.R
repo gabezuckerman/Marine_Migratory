@@ -1,4 +1,7 @@
 
+masterpalette <- c("#6A3D9A", "#FF7F00", "#023858", "#33A02C", "#B15928", "#E31A1C",
+                   "#CAB2D6", "#FDBF6F", "#1F78B4", "#B2DF8A", "#FFFF99", "#FB9A99")
+
 # Retrieve the names of species for which OBIS data is available
 getOBISnames <- function() {
   spec <- read.csv("Data/obis_spec_cts_named.csv", stringsAsFactors = F)
@@ -128,11 +131,18 @@ pacificMapPoints <- function(mytable, m = NULL, pass = F) {
   mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
   mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
   if (is.null(m)) m <- leaflet() %>% addTiles()
+  
+  factpal <- colorFactor(masterpalette[1:length(unique(mytable$species))], mytable$species)
+  
   m <- m %>%
     addCircleMarkers(data = mytable, ~decimalLongitude, ~decimalLatitude, 
-                     radius = 3, stroke = F, opacity = 0.2,
+                     radius = 3, stroke = F, opacity = 0.2, color = ~factpal(species),
                      popup = ~as.character(species),
-                     label = ~as.character(species))
+                     label = ~as.character(species)) %>%
+    addLegend('topleft', colors = factpal(unique(mytable$species)), 
+              labels = unique(mytable$species), title = "Species")
+  
+  
   if (!pass) m <- m %>% 
     addProviderTiles(providers$Esri.OceanBasemap) %>%
     setView(lng = 180, lat = 0, zoom = 2)
@@ -180,7 +190,7 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
   spec_opts <- unique(inds$species)
   
   if (cb == "species") {
-    pal <- c("#663ec4", "#bf3b3b", "#e0a831")
+    pal <- masterpalette
     for (s in 1:length(spec_opts)) {
       inds_to_plot <- inds[inds$species == spec_opts[s],]
       for (i in 1:numInds) {
@@ -190,10 +200,12 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
                                 popup = ~as.character(species),
                                 label = ~as.character(species),
                                 color = pal[s])
+
       }
     }
+    m <- m %>% addLegend('topleft', colors=pal[1:length(spec_opts)], label=spec_opts, title="Species")
   } else {
-    pallettes <- c("YlGn", "RdPu", "PuBu", "BuPu", "Greys", "Oranges", "Reds")
+    pallettes <- c("PuBu", "Oranges", "BuPu", "YlGn", "Greys", "Reds", "RdPu")
     for (s in 1:length(spec_opts)) {
       pal <- brewer.pal(name = pallettes[s], n = min(numInds, 9))
       pal <- rev(c(pal, pal))
@@ -214,37 +226,45 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
   return(m)
 }
 
-plot.mcp <- function(atn, numInds, conf){
+plot.mcp <- function(atn, numInds, conf) {
   
   focalSp <- na.omit(atn)
+  atn$decimalLongitude <- map(atn$decimalLongitude, shift)
+  
+  cts <- table(focalSp$serialNumber)
   
   ## if user selects more individuals than there are in the dataset, return data for all individuals
-  if (length(unique(focalSp$serialNumber)) >= numInds){
+  if (length(cts[cts > 5]) >= numInds){
     numInds <- numInds
   }else{
-    numInds <- length(unique(focalSp$serialNumber))
+    numInds <- length(cts[cts > 5])
   }
   ## return individuals with most data
-  sequence <- unique(focalSp$serialNumber)[order(table(focalSp$serialNumber), decreasing = TRUE)][1:numInds]
-  indiv <- subset(focalSp, focalSp$serialNumber %in% sequence)
+  sequence <- table(focalSp$serialNumber)[order(table(focalSp$serialNumber), decreasing = TRUE)][1:numInds] %>%
+              names() %>%
+              as.numeric()
+
+  indiv <- focalSp[focalSp$serialNumber %in% sequence, ]
   
   
   ## calculate MCP per individual, per zone
   for ( i in sequence ){
     for ( j in unique(indiv$UTMzone) ){
       indiv.zone <- indiv[indiv$serialNumber == i & indiv$UTMzone == j ,  ]
-      if(nrow(indiv.zone) >= 5){
+      if (nrow(indiv.zone) >= 5){
         idsp <- data.frame(indiv.zone$serialNumber)
         coordinates(idsp) <- cbind(indiv.zone$UTM.east, indiv.zone$UTM.north)
         
         focalSp.mcp <- mcp(idsp, percent = conf, unin = 'm', unout = 'km2')
         proj4string(focalSp.mcp) <- CRS(paste0("+proj=utm +zone=", j ))
-        mcp_poly <- spTransform(focalSp.mcp, CRS("+proj=longlat +datum=WGS84")) }
+        mcp_poly <- spTransform(focalSp.mcp, CRS("+proj=longlat +datum=WGS84 +lon_wrap=180")) 
       
         if ( i == sequence[1] ){
-        indivPolys <- mcp_poly
-         }else{
-        indivPolys <- bind(indivPolys, mcp_poly)}
+          indivPolys <- mcp_poly
+        } else {
+          indivPolys <- bind(indivPolys, mcp_poly)
+        }
+      }
     } 
   }
   
@@ -261,17 +281,19 @@ plot.mcp <- function(atn, numInds, conf){
   } 
 
   polyToPlot$id <- sequence
+  plotNum <- length(polyToPlot)
+  print(plotNum)
   
   if (length(sequence) <= 12){
-    pal <- brewer.pal(max(length(sequence), 3), "Paired")
+    pal <- masterpalette[1:numInds]
   }else{
     extra <- length(sequence) - 12
-    pal <- c(brewer.pal(12, "Paired"),  brewer.pal(extra, "Paired") )
+    pal <- c(masterpalette, masterpalette, masterpalette)[1:numInds]
   }
   
   return(
     leaflet(polyToPlot) %>% addProviderTiles(providers$Esri.OceanBasemap) %>% 
-    addPolygons(weight = .3, opacity = 1 , color = pal[1:numInds] , fillColor = pal) %>% 
+    addPolygons(weight = 1, opacity = 100, color = pal[1:numInds], fillColor = pal, fillOpacity = 0.55) %>% 
     addLegend('topleft', colors = pal[1:numInds], labels = sequence,  title = c(unique(focalSp$species)))
   )
 }
