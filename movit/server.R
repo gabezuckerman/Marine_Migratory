@@ -120,7 +120,7 @@ server <- shinyServer(function(input, output, session) {
     })
     
     output$colorby <- renderUI({
-      if(input$datasource == "ATN" && (input$maptype == "traj" || input$maptype == "kernel")) {
+      if((input$datasource == "ATN" || input$datasource == "ATN and OBIS") && (input$maptype == "traj" || input$maptype == "kernel" || input$maptype == "joint")) {
             radioButtons("colorby", "Color by:",
              choices = c("species", "individual"),
              inline = F, selected = "species")
@@ -142,18 +142,15 @@ server <- shinyServer(function(input, output, session) {
     if(input$datasource == "OBIS") {
       obis <<- pacificProcessing(loadOBIS(input$species))
       output$loaded <- renderText("Done!")
-      #output$OBISTable <- renderDataTable(obis, options = list(scrollX = TRUE))
     }
     else if(input$datasource == "ATN") {
       atn <<- loadATN(input$species)
       output$loaded <- renderText("Done!")
-      #output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
     }
     else if(input$datasource == "ATN and OBIS") {
       atn <<- loadATN(input$species)
       obis <<- pacificProcessing(loadOBIS(input$species))
       output$loaded <- renderText("Done!")
-      #output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
     }
     else if(input$datasource == "Load in .csv file") {
       #use loaded in csv and process
