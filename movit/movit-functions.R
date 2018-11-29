@@ -220,13 +220,15 @@ plot.mcp <- function(atn, numInds, conf){
   
   ## if user selects more individuals than there are in the dataset, return data for all individuals
   if (length(unique(focalSp$serialNumber)) >= numInds){
-    individuals <- numInds
+    numInds <- numInds
   }else{
-    individuals <- length(unique(focalSp$serialNumber))
+    numInds <- length(unique(focalSp$serialNumber))
   }
   ## return individuals with most data
-  sequence <- unique(focalSp$serialNumber)[order(table(focalSp$serialNumber), decreasing = TRUE)][1:individuals]
+  sequence <- unique(focalSp$serialNumber)[order(table(focalSp$serialNumber), decreasing = TRUE)][1:numInds]
   indiv <- subset(focalSp, focalSp$serialNumber %in% sequence)
+  
+  
   ## calculate MCP per individual, per zone
   for ( i in sequence ){
     for ( j in unique(indiv$UTMzone) ){
@@ -261,13 +263,15 @@ plot.mcp <- function(atn, numInds, conf){
   polyToPlot$id <- sequence
   
   if (length(sequence) <= 12){
-    pal <- brewer.pal(length(sequence), "Paired")
+    pal <- brewer.pal(max(length(sequence), 3), "Paired")
   }else{
     extra <- length(sequence) - 12
     pal <- c(brewer.pal(12, "Paired"),  brewer.pal(extra, "Paired") )
   }
   
-  leaflet(polyToPlot) %>% addProviderTiles(providers$Esri.OceanBasemap) %>% 
-    addPolygons(weight = .3, opacity = 1 , color = pal , fillColor = pal) %>% 
-    addLegend('topleft', colors = pal[1:individuals], labels = sequence,  title = c(unique(focalSp$species)))
+  return(
+    leaflet(polyToPlot) %>% addProviderTiles(providers$Esri.OceanBasemap) %>% 
+    addPolygons(weight = .3, opacity = 1 , color = pal[1:numInds] , fillColor = pal) %>% 
+    addLegend('topleft', colors = pal[1:numInds], labels = sequence,  title = c(unique(focalSp$species)))
+  )
 }
