@@ -97,6 +97,30 @@ server <- shinyServer(function(input, output, session) {
                     ), multiple = FALSE)
       }
   })
+    
+    output$confidence <- renderUI({
+      if (input$datasource == "ATN" && input$maptype == "kernel") {
+        sliderInput("confidence", "Condifence Interval Percentage",
+                    min = 1, max = 100,
+                    value = 95)
+      }
+    })
+    
+    output$colorby <- renderUI({
+      if(input$datasource == "ATN" && (input$maptype == "traj" || input$maptype == "kernel")) {
+            radioButtons("colorby", "Color by:",
+             choices = c("species", "individual"),
+             inline = F, selected = "species")
+      }
+    })
+    
+    output$numSpecies <- renderUI({
+      if((input$datasource == "ATN" ||  input$datasource == "ATN and OBIS") && (input$maptype == "traj" || input$maptype == "kernel" || input$maptype == "joint")) {
+        sliderInput("numInds", "Num. individuals per species",
+                    min = 1, max = 12,
+                    value = 2)
+      }
+    })
 
   
   
@@ -155,7 +179,7 @@ server <- shinyServer(function(input, output, session) {
       if (input$datasource == "ATN") {
         if (input$maptype == "heat") pacificMapHeatmap(atn)
         else if (input$maptype == "point") pacificMapPoints(atn)
-        else if (input$maptype == "kernel") plot.mcp(atn, numInds = input$numInds, conf = 95)
+        else if (input$maptype == "kernel") plot.mcp(atn, numInds = input$numInds, conf = input$confidence)
         else pacificMapLines(atn, numInds = input$numInds, cb = input$colorby)
       } else if (input$datasource == "OBIS") {
         if (input$maptype == "point") pacificMapPoints(obis)
@@ -175,7 +199,7 @@ server <- shinyServer(function(input, output, session) {
   })
   url <- a("our GitHub Wiki", href="https://github.com/gabezuckerman/Marine_Migratory/wiki")
   output$info2 <- renderUI({
-    HTML("From top left (clockwise): California sea lions, Humpback whale, Black footed albatross, Sea otters<br/>Photo credit: ...")
+    HTML("From top left (clockwise): California sea lions, Humpback whale, Black footed albatross, Sea otters<br/>Photo credit: José G. Martínez-Fonseca")
   })
 })
   
