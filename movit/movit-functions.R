@@ -132,10 +132,20 @@ pacificMapPoints <- function(mytable, m = NULL, pass = F) {
     addCircleMarkers(data = mytable, ~decimalLongitude, ~decimalLatitude, 
                      radius = 3, stroke = F, opacity = 0.2,
                      popup = ~as.character(species),
-                     label = ~as.character(species))
+                     label = ~as.character(species)) 
   if (!pass) m <- m %>% 
     addProviderTiles(providers$Esri.OceanBasemap) %>%
-    setView(lng = 180, lat = 0, zoom = 2)
+    setView(lng = 180, lat = 0, zoom = 2) %>%
+    onRender(
+      "function(el, x) {
+            L.easyPrint({
+              sizeModes: ['A4Landscape', 'A4Portrait'],
+              filename: 'MOViTmap',
+              exportOnly: true,
+              hideControlContainer: false
+            }).addTo(this);
+            }"
+    )
   return(m)
 }
 
@@ -161,10 +171,20 @@ pacificMapHeatmap <- function(mytable, m = NULL, pass = F) {
     addRectangles(data = blocks_ltlng, 
                   lng1=~decimalLongitude-(degree/2), lng2=~decimalLongitude+(degree/2),
                   lat1=~decimalLatitude-(degree/2), lat2=~decimalLatitude+(degree/2),
-                  fillColor = ~col, fillOpacity = 0.5, stroke = F)
+                  fillColor = ~col, fillOpacity = 0.5, stroke = F) 
   if (!pass) m <- m %>% 
     addProviderTiles(providers$Esri.OceanBasemap) %>%
-    setView(lng = 180, lat = 0, zoom = 2)
+    setView(lng = 180, lat = 0, zoom = 2) %>%
+    onRender(
+      "function(el, x) {
+            L.easyPrint({
+              sizeModes: ['A4Landscape', 'A4Portrait'],
+              filename: 'MOViTmap',
+              exportOnly: true,
+              hideControlContainer: false
+            }).addTo(this);
+            }"
+    )
   return(m)
 }
 
@@ -210,7 +230,17 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
   }
   
   m <- m %>% addProviderTiles(providers$Esri.OceanBasemap) %>%
-    setView(lng = 180, lat = 0, zoom = 2)
+    setView(lng = 180, lat = 0, zoom = 2) %>%
+    onRender(
+      "function(el, x) {
+            L.easyPrint({
+              sizeModes: ['A4Landscape', 'A4Portrait'],
+              filename: 'MOViTmap',
+              exportOnly: true,
+              hideControlContainer: false
+            }).addTo(this);
+            }"
+    )
   return(m)
 }
 
@@ -269,5 +299,15 @@ plot.mcp <- function(atn, numInds, conf){
   
   leaflet(polyToPlot) %>% addProviderTiles(providers$Esri.OceanBasemap) %>% 
     addPolygons(weight = .3, opacity = 1 , color = pal , fillColor = pal) %>% 
-    addLegend('topleft', colors = pal[1:individuals], labels = sequence,  title = c(unique(focalSp$species)))
+    addLegend('topleft', colors = pal[1:individuals], labels = sequence,  title = c(unique(focalSp$species))) %>%
+    onRender(
+      "function(el, x) {
+            L.easyPrint({
+              sizeModes: ['A4Landscape', 'A4Portrait'],
+              filename: 'MOViTmap',
+              exportOnly: true,
+              hideControlContainer: false
+            }).addTo(this);
+            }"
+    )
 }

@@ -15,19 +15,32 @@ library(rgdal)
 library(raster)
 library(maptools)
 library(rsconnect)
+library(htmlwidgets)
 
 atn <- NULL
 obis <- NULL
 customTable <- NULL
 
-#get commonNames for OBIS
+
+
+#get functions
 source('movit-functions.R')
 
 server <- shinyServer(function(input, output, session) {
   output$map <- renderLeaflet({
     leaflet() %>%
       addProviderTiles(providers$Esri.OceanBasemap) %>%
-      setView(lng = 180, lat = 0, zoom = 2)
+      setView(lng = 180, lat = 0, zoom = 2) %>%
+      onRender(
+        "function(el, x) {
+        L.easyPrint({
+        sizeModes: ['A4Landscape', 'A4Portrait'],
+        filename: 'MOViTmap',
+        exportOnly: true,
+        hideControlContainer: false
+        }).addTo(this);
+  }"
+    )
   })
   
   output$datasource <- renderUI({
@@ -122,6 +135,7 @@ server <- shinyServer(function(input, output, session) {
       }
     })
 
+    
     
   observeEvent(
     input$loadData, 
