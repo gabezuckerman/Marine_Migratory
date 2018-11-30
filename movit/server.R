@@ -23,6 +23,7 @@ customTable <- NULL
 
 
 
+
 #get functions
 source('movit-functions.R')
 
@@ -135,29 +136,38 @@ server <- shinyServer(function(input, output, session) {
       }
     })
 
-    
+
+  observeEvent(
+    input$species,
+    output$startLoading <- renderText("This may take a few seconds...")
+  )
     
   observeEvent(
     input$loadData, 
     if(input$datasource == "OBIS") {
       obis <<- pacificProcessing(loadOBIS(input$species))
-      output$loaded <- renderText("Done!")
+      output$startLoading <- NULL
+      output$loaded <- renderUI("Done!")
     }
     else if(input$datasource == "ATN") {
+      #output$startLoading <- renderText("Loading...")
       atn <<- loadATN(input$species)
-      output$loaded <- renderText("Done!")
+      output$startLoading <- NULL
+      output$loaded <- renderUI("Done!")
     }
     else if(input$datasource == "ATN and OBIS") {
       atn <<- loadATN(input$species)
       obis <<- pacificProcessing(loadOBIS(input$species))
-      output$loaded <- renderText("Done!")
+      output$startLoading <- NULL
+      output$loaded <- renderUI("Done!")
     }
     else if(input$datasource == "Load in .csv file") {
       #use loaded in csv and process
       inFile <- input$file
       print(inFile)
       customTable <<- read.csv(inFile$datapath) %>% pacificProcessing()
-      output$loaded <- renderText("Done!")
+      output$startLoading <- NULL
+      output$loaded <- renderUI("Done!")
     }
     
   )
@@ -169,7 +179,17 @@ server <- shinyServer(function(input, output, session) {
       output$map <- renderLeaflet({
         leaflet() %>%
           addProviderTiles(providers$Esri.OceanBasemap) %>%
-          setView(lng = 180, lat = 0, zoom = 2)
+          setView(lng = 180, lat = 0, zoom = 2) %>%
+          onRender(
+            "function(el, x) {
+            L.easyPrint({
+            sizeModes: ['A4Landscape', 'A4Portrait'],
+            filename: 'MOViTmap',
+            exportOnly: true,
+            hideControlContainer: false
+            }).addTo(this);
+      }"
+    )
       })
       atn <<- NULL
       obis <<- NULL

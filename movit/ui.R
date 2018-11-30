@@ -45,8 +45,10 @@ ui <- shinyUI(
                                         radioButtons("datasource", "Which datasource would you like to use?",
                                                      choices = c("OBIS", "ATN", "ATN and OBIS", "Load in .csv file"), inline = T),
                                         uiOutput("datasource"),
+                                        
                                         actionButton("loadData", "Load"),
-                                        uiOutput("loaded", inline = T),
+                                        uiOutput("startLoading", inline = T),
+                                        uiOutput("loaded", inline = T), 
                                       
                                         
                                         #uiOutput("loadData"),
