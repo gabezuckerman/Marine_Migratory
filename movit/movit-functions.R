@@ -217,7 +217,8 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
                                 ~decimalLongitude, ~decimalLatitude, 
                                 popup = ~as.character(species),
                                 label = ~as.character(species),
-                                color = pal[s])
+                                color = pal[s],
+                                opacity = 0.1)
 
       }
     }
