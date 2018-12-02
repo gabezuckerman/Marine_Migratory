@@ -1,53 +1,54 @@
+# -----------------------------------------------------------------------------
+# MOViT
+# filename: movit-functions.R
+# authors: Gabe Zuckerman, Ben Goldstein, Erin Westeen
+# last updated: Dec 2 2018
+# -----------------------------------------------------------------------------
 
+# A vector of custom colors for graphic output. Selected and reordered from RColorBrewer.
 masterpalette <- c("#6A3D9A", "#FF7F00", "#023858", "#33A02C", "#B15928", "#E31A1C",
                    "#CAB2D6", "#FDBF6F", "#1F78B4", "#B2DF8A", "#FFFF99", "#FB9A99")
 
-# Retrieve the names of species for which OBIS data is available
+# -----------------------------------------------------------------------------
+# getOBISnames(): 
+# Purpose: retrieves a list of OBIS species names and scientific names for
+#          the user to select.
 getOBISnames <- function() {
   spec <- read.csv("Data/obis_spec_cts_named.csv", stringsAsFactors = F)
   return(spec$commonName)
 }
 
-# Take a dataframe with columns for decimalLatitude and decimalLongitude and
-#   assign each a block ID based on a grid
-add_grid_to_points <- function(obs_data, degree) {
-  obs_data$block <- (floor(obs_data$decimalLatitude / degree) + 
-                       1000 * floor(obs_data$decimalLongitude / degree)) %>% 
-    as.factor() %>% as.numeric()
-  obs_data$blockID <- floor(obs_data$decimalLatitude / degree) + 
-    1000 * floor(obs_data$decimalLongitude / degree)
-  return(obs_data)
+# -----------------------------------------------------------------------------
+# getATNnames(): 
+# Purpose: retrieves a list of ATN species names for the user to select.
+getATNnames <- function() {
+  spec <- read.csv("Data/atnPacificOnlySpecCounts.csv", stringsAsFactors = F)
+  return(spec$species)
 }
 
-# Take a dataframe with blockIDs and retrieve the central decimalLatitude and
-#   decimalLongitude for each block
-add_latlong_to_grid <- function(gridsummary, degree) {
-  gridsummary$decimalLatitude <- (gridsummary$blockID %% 1000) * degree + (degree/2)
-  gridsummary$decimalLongitude <- floor(gridsummary$blockID / 1000) * degree + (degree/2)
-  return(gridsummary)
-}
-
-#loading in ATN Data
-loadATN <- function(list_species){
+# -----------------------------------------------------------------------------
+# loadATN(list_of_species): 
+# Purpose: Loads in ATN data corresponding to the specified species.
+# Arguments:
+#   list_of_species is a vector of one or more string common or scientific names of species.
+loadATN <- function(list_of_species){
   atn_data <- read.csv('Data/atnPacific_withUTMs.csv', stringsAsFactors = F)
   atn_data$decimalLongitude[atn_data$decimalLongitude < 0] <- 
     atn_data$decimalLongitude[atn_data$decimalLongitude < 0] + 360
   l <- list()
-  for(i in 1:length(list_species)) {
-    s <- atn_data %>% filter(species == list_species[i])
+  for(i in 1:length(list_of_species)) {
+    s <- atn_data %>% filter(species == list_of_species[i])
     l[[i]] <- s
   }
   table <- bind_rows(l)
   return(table)
 }
 
-#gets common names for ATN
-getATNnames <- function() {
-  spec <- read.csv("Data/atnPacificOnlySpecCounts.csv", stringsAsFactors = F)
-  return(spec$species)
-}
-
-# load OBIS data
+# -----------------------------------------------------------------------------
+# loadOBIS(list_of_species): 
+# Purpose: Loads in OBIS data corresponding to the specified species.
+# Arguments:
+#   list_of_species is a vector of one or more string common names of species.
 loadOBIS <- function(list_of_species) {
   if (list_of_species == "") {
     return(NULL)
@@ -73,60 +74,16 @@ loadOBIS <- function(list_of_species) {
   return(obis)
 }
 
-#functions that help with keeping only instances in the Pacific Ocean
-inPacific <- function(long, lat) {
-  if (long <= 290 && long >= 280 && lat >= -80 && lat <= 9) {
-    return(TRUE)
-  }
-  else if(long <= 280 && long >= 276 && lat >= -80 && lat <= 9) {
-    return(TRUE)
-  }
-  else if(long <= 276 && long >= 270 && lat >= -80 && lat <= 14) {
-    return(TRUE)
-  }
-  else if(long <= 270 && long >= 260 && lat >= -80 && lat <= 18) {
-    return(TRUE)
-  }
-  else if(long <= 260 && long >= 145 && lat >= -80 && lat <= 66) {
-    return(TRUE)
-  }
-  else if(long <= 145 && long >= 100 && lat >= 0 && lat <= 66) {
-    return(TRUE)
-  }
-  else {
-    return(FALSE)
-  }
-}
-
-shift <- function(longitude) {
-  if (longitude < 0) {
-    return(longitude + 360)
-  }
-  else {
-    return(longitude)
-  }
-}
-
-#need to pre-process atn data
-pacificProcessing<- function(mytable) {
-  if(is.null(mytable)) {
-    return(NULL)
-  }
-  #reformats longitude
-  mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
-  mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
-  mytable$decimalLongitude <- map(mytable$decimalLongitude, shift)
-
-  #keeps rows in pacific determined by lon, lat
-  pacific <- map2(mytable$decimalLongitude, mytable$decimalLatitude, ~inPacific(.x, .y))
-  head(mytable)
-  mytable$inPO <- pacific
-  head(mytable)
-  mytable <- filter(mytable, inPO == TRUE)
-  return(mytable)
-}
-
-#creates a leaflet object from an obis or atn table
+# -----------------------------------------------------------------------------
+# pacificMapPoints(mytable, m = NULL, pass = F)
+# Purpose: Creates a map showing the points in space of each observation in mytable.
+# Arguments:
+#   mytable is a data frame containing records of species observations 
+#       specified by a decimal lat-long.
+#   m is a leaflet object. If not NULL, the function layers the produced 
+#       point map on top of m.
+#   pass tells the function whether this is the final map or if this map 
+#       will be given more layers.
 pacificMapPoints <- function(mytable, m = NULL, pass = F) {
   mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
   mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
@@ -157,6 +114,16 @@ pacificMapPoints <- function(mytable, m = NULL, pass = F) {
   return(m)
 }
 
+# -----------------------------------------------------------------------------
+# pacificMapHeatmap(mytable, m = NULL, pass = F)
+# Purpose: Creates heat map of point density of the observations in mytable.
+# Arguments:
+#   mytable is a data frame containing records of species observations 
+#       specified by a decimal lat-long.
+#   m is a leaflet object. If not NULL, the function layers the produced 
+#       point map on top of m.
+#   pass tells the function whether this is the final map or if this map 
+#       will be given more layers.
 pacificMapHeatmap <- function(mytable, m = NULL, pass = F) {
   mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
   mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
@@ -196,7 +163,16 @@ pacificMapHeatmap <- function(mytable, m = NULL, pass = F) {
   return(m)
 }
 
-
+# -----------------------------------------------------------------------------
+# pacificMapLines(mytable, numInds = 5, cb = "species", m = NULL)
+# Purpose: Creates a map showing the points in space of each observation in mytable.
+# Arguments:
+#     mytable is a data frame containing records of species observations specified 
+#         by a decimal lat-long.
+#     numInds specifies how many individuals will be plotted (max 12)
+#     cb refers to "color by". Can be "species" or "individual".
+#     m is a leaflet object. If not NULL, the function layers the produced point 
+#         map on top of m.
 pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
   mytable <- mytable %>% arrange(time)
   
@@ -219,7 +195,6 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
                                 label = ~as.character(species),
                                 color = pal[s],
                                 opacity = 0.1)
-
       }
     }
     m <- m %>% addLegend('topleft', colors=pal[1:length(spec_opts)], label=spec_opts, title="Species")
@@ -255,6 +230,15 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
   return(m)
 }
 
+# -----------------------------------------------------------------------------
+# plot.mcp(atn, numInds, conf)
+# Purpose: Creates a map showing confidence intervals for animal tracking data.
+# Arguments:
+#     atn contains the input telemetry data
+#     numInds specifies how many individuals will be plotted (max 12)
+#     cb refers to "color by". Can be "species" or "individual".
+#     conf is the confidence interval provided for the kernel density plot. 
+#         Specify as an integer, not a decimal: 95% is 95, not 0.95.
 plot.mcp <- function(atn, numInds, conf) {
   
   focalSp <- na.omit(atn)
@@ -336,3 +320,100 @@ plot.mcp <- function(atn, numInds, conf) {
       )
   )
 }
+
+# -----------------------------------------------------------------------------
+# pacificProcessing(mytable): 
+# Purpose: Conducts processing on generic data to trim to the Pacific.
+# Arguments:
+#   mytable is a data frame of occurrences with decimalLatitude and 
+#       decimalLongitude columns.
+pacificProcessing<- function(mytable) {
+  if(is.null(mytable)) {
+    return(NULL)
+  }
+  #reformats longitude
+  mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
+  mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
+  mytable$decimalLongitude <- map(mytable$decimalLongitude, shift)
+
+  #keeps rows in pacific determined by lon, lat
+  pacific <- map2(mytable$decimalLongitude, mytable$decimalLatitude, ~inPacific(.x, .y))
+  head(mytable)
+  mytable$inPO <- pacific
+  head(mytable)
+  mytable <- filter(mytable, inPO == TRUE)
+  return(mytable)
+}
+
+# -----------------------------------------------------------------------------
+# inPacific(long, lat): 
+# Purpose: Checks if a given set of decimal longitude and latitude 
+#     coordinates are in the Pacific.
+# Arguments:
+#   long is a single decimal longitude value.
+#   lat is a single decimal latitude value.
+inPacific <- function(long, lat) {
+  if (long <= 290 && long >= 280 && lat >= -80 && lat <= 9) {
+    return(TRUE)
+  }
+  else if(long <= 280 && long >= 276 && lat >= -80 && lat <= 9) {
+    return(TRUE)
+  }
+  else if(long <= 276 && long >= 270 && lat >= -80 && lat <= 14) {
+    return(TRUE)
+  }
+  else if(long <= 270 && long >= 260 && lat >= -80 && lat <= 18) {
+    return(TRUE)
+  }
+  else if(long <= 260 && long >= 145 && lat >= -80 && lat <= 66) {
+    return(TRUE)
+  }
+  else if(long <= 145 && long >= 100 && lat >= 0 && lat <= 66) {
+    return(TRUE)
+  }
+  else {
+    return(FALSE)
+  }
+}
+
+# -----------------------------------------------------------------------------
+# shift(longitude): 
+# Purpose: Ensures longitude data are on a 0-360 scale instead of a -180-180 scale.
+# Arguments:
+#   longitude is a single decimal longitude value.
+shift <- function(longitude) {
+  if (longitude < 0) {
+    return(longitude + 360)
+  }
+  else {
+    return(longitude)
+  }
+}
+
+# -----------------------------------------------------------------------------
+# add_grid_to_points(obs_data, degree): 
+# Purpose: Helper function for pacificMapHeatmap gridding.
+# Arguments:
+#   obs_data is a data frame containing the observations.
+#   degree specifies the dimensions of a cell in the heatmap in decimal degrees.
+add_grid_to_points <- function(obs_data, degree) {
+  obs_data$block <- (floor(obs_data$decimalLatitude / degree) + 
+                       1000 * floor(obs_data$decimalLongitude / degree)) %>% 
+    as.factor() %>% as.numeric()
+  obs_data$blockID <- floor(obs_data$decimalLatitude / degree) + 
+    1000 * floor(obs_data$decimalLongitude / degree)
+  return(obs_data)
+}
+
+# -----------------------------------------------------------------------------
+# add_latlong_to_grid(gridsummary, degree): 
+# Purpose: Helper function for pacificMapHeatmap gridding.
+# Arguments:
+#   gridsummary is a data frame containing gridded cell IDs and their counts.
+#   degree specifies the dimensions of a cell in the heatmap in decimal degrees.
+add_latlong_to_grid <- function(gridsummary, degree) {
+  gridsummary$decimalLatitude <- (gridsummary$blockID %% 1000) * degree + (degree/2)
+  gridsummary$decimalLongitude <- floor(gridsummary$blockID / 1000) * degree + (degree/2)
+  return(gridsummary)
+}
+

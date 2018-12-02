@@ -1,3 +1,10 @@
+# -----------------------------------------------------------------------------
+# MOViT
+# filename: server.R
+# authors: Gabe Zuckerman, Ben Goldstein, Erin Westeen
+# last updated: Dec 2 2018
+# -----------------------------------------------------------------------------
+
 require(shiny)
 library(tidyverse)
 library(glue)
@@ -228,11 +235,3 @@ server <- shinyServer(function(input, output, session) {
     HTML("From top left (clockwise): California sea lions, Humpback whale, Black footed albatross, Sea otters<br/>Photo credit: José G. Martínez-Fonseca")
   })
 })
-
-### TODO
-# Ben:
-# Plot both OBIS and ATN at the same time
-# Gabe:
-# Get everything in one pane
-# Erin:
-# Get kernel density and BBMM into app (or give to Gabe to pu into app)

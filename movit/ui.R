@@ -1,3 +1,10 @@
+# -----------------------------------------------------------------------------
+# MOViT
+# filename: ui.R
+# authors: Gabe Zuckerman, Ben Goldstein, Erin Westeen
+# last updated: Dec 2 2018
+# -----------------------------------------------------------------------------
+
 require(shiny)
 library(tidyverse)
 library(glue)
