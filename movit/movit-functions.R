@@ -27,6 +27,16 @@ getATNnames <- function() {
 }
 
 # -----------------------------------------------------------------------------
+# getATNandOBISnames(): 
+# Purpose: retrieves a list of ATN and OBIS species names for the user to select.
+getATNandOBISnames <- function() {
+  obis <- read.csv("Data/obis_spec_cts_named.csv", stringsAsFactors = F)
+  atn <- read.csv("Data/atnPacificOnlySpecCounts.csv", stringsAsFactors = F)
+  return(c(obis$commonName, atn$species))
+}
+
+
+# -----------------------------------------------------------------------------
 # loadATN(list_of_species): 
 # Purpose: Loads in ATN data corresponding to the specified species.
 # Arguments:

@@ -23,9 +23,11 @@ library(raster)
 library(maptools)
 library(rsconnect)
 library(htmlwidgets)
+library(dplyr)
 
 atn <- NULL
 obis <- NULL
+both <- NULL
 customTable <- NULL
 
 
@@ -73,7 +75,7 @@ server <- shinyServer(function(input, output, session) {
       selectInput("species", "Species (ATN and OBIS)",
                   choices = c(
                     `Select One or More` = "",
-                    getATNnames()
+                    getATNandOBISnames()
                   ), multiple = TRUE)
     }
     else if (input$datasource == "Load in .csv file") {
@@ -107,8 +109,9 @@ server <- shinyServer(function(input, output, session) {
       selectInput("maptype", "Map Types", 
                   choices = c(
                     `Select One` = "",
-                    `Joint Map` = "joint"
-                  ), multiple = FALSE)    }
+                    `Heat Map` = "heat",
+                    `Point Map` = "point"
+                  ), multiple = FALSE)  }
       else if(input$datasource == "Load in .csv file") {
         selectInput("maptype", "Map Types", 
                     choices = c(
@@ -136,7 +139,7 @@ server <- shinyServer(function(input, output, session) {
     })
     
     output$numInds <- renderUI({
-      if((input$datasource == "ATN" ||  input$datasource == "ATN and OBIS") && (input$maptype == "traj" || input$maptype == "kernel" || input$maptype == "joint")) {
+      if((input$datasource == "ATN" || input$datasource == "ATN and OBIS") && (input$maptype == "traj" || input$maptype == "kernel" || input$maptype == "joint")) {
         sliderInput("numInds", "Num. individuals per species",
                     min = 1, max = 12,
                     value = 2)
@@ -146,7 +149,9 @@ server <- shinyServer(function(input, output, session) {
 
   observeEvent(
     input$species,
-    output$startLoading <- renderText("This may take a few seconds...")
+    if(input$datasource == "OBIS" || input$datasource == "ATN and OBIS") {
+      output$startLoading <- renderText("May take a few seconds after Load is clicked...")
+    }
   )
     
   observeEvent(
@@ -163,8 +168,11 @@ server <- shinyServer(function(input, output, session) {
       output$loaded <- renderUI("Done!")
     }
     else if(input$datasource == "ATN and OBIS") {
-      atn <<- loadATN(input$species)
-      obis <<- pacificProcessing(loadOBIS(input$species))
+      atnInput <- getATNnames()[which(getATNnames() %in% input$species)]
+      obisInput <- getOBISnames()[which(getOBISnames() %in% input$species)]
+      atn <<- loadATN(atnInput) %>% dplyr::select(species, decimalLongitude, decimalLatitude)
+      obis <<- pacificProcessing(loadOBIS(obisInput)) %>% dplyr::select(species, decimalLongitude, decimalLatitude)
+      both <<- rbind(atn, obis)
       output$startLoading <- NULL
       output$loaded <- renderUI("Done!")
     }
@@ -200,6 +208,7 @@ server <- shinyServer(function(input, output, session) {
       })
       atn <<- NULL
       obis <<- NULL
+      both <<- NULL
       customTable <<- NULL
       output$loaded <- NULL
     }
@@ -218,8 +227,8 @@ server <- shinyServer(function(input, output, session) {
         if (input$maptype == "point") pacificMapPoints(obis)
         else pacificMapHeatmap(obis)
       } else if (input$datasource == "ATN and OBIS") {
-        pacificMapLines(atn, numInds = input$numInds, cb = input$colorby,
-                        m = pacificMapHeatmap(obis, pass = T))
+        if (input$maptype == "point") pacificMapPoints(both)
+        else pacificMapHeatmap(both)
       }
       else if (input$datasource == "Load in .csv file") {
         if (input$maptype == "heat") pacificMapHeatmap(customTable)
