@@ -24,6 +24,7 @@ library(maptools)
 library(rsconnect)
 library(htmlwidgets)
 library(dplyr)
+library(rmapshaper)
 
 atn <- NULL
 obis <- NULL
