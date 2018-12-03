@@ -67,6 +67,7 @@ loadOBIS <- function(list_of_species) {
   spec_names <- read.csv("Data/obis_spec_cts_named.csv")
   for (i in 1:length(list_of_species)) {
     spec_specified <- list_of_species[[i]]
+    print(spec_specified)
     if (toupper(spec_specified) %in% toupper(spec_names$commonName)) {
       sciname <- spec_names$species[toupper(spec_names$commonName) == toupper(spec_specified)]
       species_data[[i]] <- occurrence(sciname)
