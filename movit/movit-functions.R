@@ -42,6 +42,9 @@ getATNandOBISnames <- function() {
 # Arguments:
 #   list_of_species is a vector of one or more string common or scientific names of species.
 loadATN <- function(list_of_species){
+  if (length(list_of_species) == 0) {
+    return(NULL)
+  }
   atn_data <- read.csv('Data/atnPacific_withUTMs.csv', stringsAsFactors = F)
   atn_data$decimalLongitude[atn_data$decimalLongitude < 0] <- 
     atn_data$decimalLongitude[atn_data$decimalLongitude < 0] + 360
@@ -60,7 +63,7 @@ loadATN <- function(list_of_species){
 # Arguments:
 #   list_of_species is a vector of one or more string common names of species.
 loadOBIS <- function(list_of_species) {
-  if (list_of_species == "") {
+  if (length(list_of_species) == 0) {
     return(NULL)
   }
   species_data <- list()

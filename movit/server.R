@@ -139,7 +139,7 @@ server <- shinyServer(function(input, output, session) {
     })
     
     output$numInds <- renderUI({
-      if((input$datasource == "ATN" || input$datasource == "ATN and OBIS") && (input$maptype == "traj" || input$maptype == "kernel" || input$maptype == "joint")) {
+      if((input$datasource == "ATN") && (input$maptype == "traj" || input$maptype == "kernel")) {
         sliderInput("numInds", "Num. individuals per species",
                     min = 1, max = 12,
                     value = 2)
@@ -170,8 +170,20 @@ server <- shinyServer(function(input, output, session) {
     else if(input$datasource == "ATN and OBIS") {
       atnInput <- getATNnames()[which(getATNnames() %in% input$species)]
       obisInput <- getOBISnames()[which(getOBISnames() %in% input$species)]
-      atn <<- loadATN(atnInput) %>% dplyr::select(species, decimalLongitude, decimalLatitude)
-      obis <<- pacificProcessing(loadOBIS(obisInput)) %>% dplyr::select(species, decimalLongitude, decimalLatitude)
+      if (length(atnInput) != 0) {
+        atn <<- loadATN(atnInput) %>% dplyr::select(species, decimalLongitude, decimalLatitude)
+      }
+      else {
+        atn <<- NULL
+      }
+      if (length(obisInput) != 0) {
+        obis <<- pacificProcessing(loadOBIS(obisInput)) %>% dplyr::select(species, decimalLongitude, decimalLatitude)
+      }
+      else {
+        obis <<- NULL
+      }
+      # atn <<- loadATN(atnInput) %>% dplyr::select(species, decimalLongitude, decimalLatitude)
+      # obis <<- pacificProcessing(loadOBIS(obisInput)) %>% dplyr::select(species, decimalLongitude, decimalLatitude)
       both <<- rbind(atn, obis)
       output$startLoading <- NULL
       output$loaded <- renderUI("Done!")
