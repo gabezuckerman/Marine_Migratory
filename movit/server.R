@@ -94,7 +94,7 @@ server <- shinyServer(function(input, output, session) {
                     `Heat Map` = "heat",
                     `Point Map` = "point",
                     `Trajectories` = "traj",
-                    `Kernel Density` = "kernel"
+                    `Home Range` = "mcp"
                   ), multiple = FALSE)
     }
     else if(input$datasource == "OBIS") {
@@ -124,7 +124,7 @@ server <- shinyServer(function(input, output, session) {
   })
     
     output$confidence <- renderUI({
-      if (input$datasource == "ATN" && input$maptype == "kernel") {
+      if (input$datasource == "ATN" && input$maptype == "mcp") {
         sliderInput("confidence", "Confidence Interval Percentage",
                     min = 1, max = 100,
                     value = 95)
@@ -140,7 +140,7 @@ server <- shinyServer(function(input, output, session) {
     })
     
     output$numInds <- renderUI({
-      if((input$datasource == "ATN") && (input$maptype == "traj" || input$maptype == "kernel")) {
+      if((input$datasource == "ATN") && (input$maptype == "traj" || input$maptype == "mcp")) {
         sliderInput("numInds", "Num. individuals per species",
                     min = 1, max = 12,
                     value = 2)
@@ -183,8 +183,6 @@ server <- shinyServer(function(input, output, session) {
       else {
         obis <<- NULL
       }
-      # atn <<- loadATN(atnInput) %>% dplyr::select(species, decimalLongitude, decimalLatitude)
-      # obis <<- pacificProcessing(loadOBIS(obisInput)) %>% dplyr::select(species, decimalLongitude, decimalLatitude)
       both <<- rbind(atn, obis)
       output$startLoading <- NULL
       output$loaded <- renderUI("Done!")
@@ -234,7 +232,7 @@ server <- shinyServer(function(input, output, session) {
       if (input$datasource == "ATN") {
         if (input$maptype == "heat") pacificMapHeatmap(atn)
         else if (input$maptype == "point") pacificMapPoints(atn)
-        else if (input$maptype == "kernel") plot.mcp(atn, numInds = input$numInds, conf = input$confidence)
+        else if (input$maptype == "mcp") plot.mcp(atn, numInds = input$numInds, conf = input$confidence)
         else pacificMapLines(atn, numInds = input$numInds, cb = input$colorby)
       } else if (input$datasource == "OBIS") {
         if (input$maptype == "point") pacificMapPoints(obis)
