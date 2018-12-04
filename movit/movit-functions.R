@@ -192,7 +192,7 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
   
   mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
   mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
-  if (is.null(m)) m <- leaflet(data = mytable) %>% addTiles() 
+  if (is.null(m)) m <- leaflet() %>% addTiles()
   
   inds <- mytable %>% group_by(serialNumber, species) %>% count() %>% arrange(-n)
   spec_opts <- unique(inds$species)
@@ -202,9 +202,21 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
     for (s in 1:length(spec_opts)) {
       inds_to_plot <- inds[inds$species == spec_opts[s],]
       for (i in 1:numInds) {
-        m <- m %>% addPolylines(data = mytable[mytable$serialNumber == 
-                                                 inds_to_plot$serialNumber[i],],
-                                ~decimalLongitude, ~decimalLatitude, 
+        species <- mytable[mytable$serialNumber == inds_to_plot$serialNumber[i],c("species")][1]
+        myline <- Line(mytable[mytable$serialNumber == inds_to_plot$serialNumber[i],
+                               c("decimalLatitude", "decimalLongitude")])
+        myline <- SpatialLines(list(Lines(list(Line(myline)), "id")))
+        if (nrow(as.data.frame(coordinates(myline))) > 100) {
+            simple_line <- ms_simplify(lines, keep = 100/(nrow(as.data.frame(coordinates(myline))) * numInds))
+            simple_coords <- coordinates(simple_line) %>% as.data.frame()
+        } else {
+            simple_coords <- coordinates(myline) %>% as.data.frame()
+        }
+        colnames(simple_coords) <- c("decimalLatitude", "decimalLongitude")
+        simple_coords$species <- species
+        
+        m <- m %>% addPolylines(data = simple_coords,
+                                ~decimalLongitude, ~decimalLatitude,
                                 popup = ~as.character(species),
                                 label = ~as.character(species),
                                 color = pal[s],
@@ -219,7 +231,19 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
       pal <- rev(c(pal, pal))
       inds_to_plot <- inds[inds$species == spec_opts[s],]
       for (i in 1:numInds) {
-        m <- m %>% addPolylines(data = mytable[mytable$serialNumber == 
+        species <- mytable[mytable$serialNumber == inds_to_plot$serialNumber[i],c("species")][1]
+        myline <- Line(mytable[mytable$serialNumber == inds_to_plot$serialNumber[i],
+                               c("decimalLatitude", "decimalLongitude")])
+        myline <- SpatialLines(list(Lines(list(Line(myline)), "id")))
+        if (nrow(as.data.frame(coordinates(myline))) > 100) {
+            simple_line <- ms_simplify(lines, keep = 100/(nrow(as.data.frame(coordinates(myline))) * numInds))
+            simple_coords <- coordinates(simple_line) %>% as.data.frame()
+        } else {
+            simple_coords <- coordinates(myline) %>% as.data.frame()
+        }
+        colnames(simple_coords) <- c("decimalLatitude", "decimalLongitude")
+        simple_coords$species <- species
+          m <- m %>% addPolylines(data = mytable[mytable$serialNumber == 
                                                  inds_to_plot$serialNumber[i],],
                                 ~decimalLongitude, ~decimalLatitude, 
                                 popup = ~as.character(species),
