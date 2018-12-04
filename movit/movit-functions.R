@@ -207,7 +207,7 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
                                c("decimalLatitude", "decimalLongitude")])
         myline <- SpatialLines(list(Lines(list(Line(myline)), "id")))
         if (nrow(as.data.frame(coordinates(myline))) > 100) {
-            simple_line <- ms_simplify(lines, keep = 100/(nrow(as.data.frame(coordinates(myline))) * numInds))
+            simple_line <- ms_simplify(myline, keep = 100/(nrow(as.data.frame(coordinates(myline))) * numInds))
             simple_coords <- coordinates(simple_line) %>% as.data.frame()
         } else {
             simple_coords <- coordinates(myline) %>% as.data.frame()
@@ -236,7 +236,7 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
                                c("decimalLatitude", "decimalLongitude")])
         myline <- SpatialLines(list(Lines(list(Line(myline)), "id")))
         if (nrow(as.data.frame(coordinates(myline))) > 100) {
-            simple_line <- ms_simplify(lines, keep = 100/(nrow(as.data.frame(coordinates(myline))) * numInds))
+            simple_line <- ms_simplify(myline, keep = 100/(nrow(as.data.frame(coordinates(myline))) * numInds))
             simple_coords <- coordinates(simple_line) %>% as.data.frame()
         } else {
             simple_coords <- coordinates(myline) %>% as.data.frame()
