@@ -114,7 +114,6 @@ pacificMapPoints <- function(mytable, m = NULL, pass = F) {
               labels = unique(mytable$species), title = "Species")
   if (!pass) m <- m %>% 
     addProviderTiles(providers$Esri.OceanBasemap) %>%
-    setView(lng = 180, lat = 0, zoom = 2) %>%
     onRender(
       "function(el, x) {
             L.easyPrint({
@@ -163,7 +162,6 @@ pacificMapHeatmap <- function(mytable, m = NULL, pass = F) {
                   fillColor = ~col, fillOpacity = 0.5, stroke = F) 
   if (!pass) m <- m %>% 
     addProviderTiles(providers$Esri.OceanBasemap) %>%
-    setView(lng = 180, lat = 0, zoom = 2) %>%
     onRender(
       "function(el, x) {
             L.easyPrint({
@@ -254,7 +252,6 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
   }
   
   m <- m %>% addProviderTiles(providers$Esri.OceanBasemap) %>%
-    setView(lng = 180, lat = 0, zoom = 2) %>%
     onRender(
       "function(el, x) {
             L.easyPrint({
