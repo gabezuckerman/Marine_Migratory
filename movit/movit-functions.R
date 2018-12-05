@@ -137,7 +137,7 @@ pacificMapPoints <- function(mytable, m = NULL, pass = F) {
 #       point map on top of m.
 #   pass tells the function whether this is the final map or if this map 
 #       will be given more layers.
-pacificMapHeatmap <- function(mytable, m = NULL, pass = F) {
+pacificMapHeatmap <- function(mytable, m = NULL, cb = "Number of observations", pass = F) {
   mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
   mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
   
@@ -146,20 +146,42 @@ pacificMapHeatmap <- function(mytable, m = NULL, pass = F) {
   degree <- 1
   
   grid_mytable <- add_grid_to_points(mytable, degree)
-  blocks <- grid_mytable %>% group_by(block, blockID) %>% count()
-  blocks_ltlng <- add_latlong_to_grid(blocks, degree)
   
-  pal <- brewer.pal(9, "YlOrRd")
-  blocks_ltlng$col <- pal[pmin(floor(log(blocks_ltlng$n)), 9) + 1]
+  if (cb == "Number of observations") {
+      blocks <- grid_mytable %>% group_by(block, blockID) %>% count()
+      blocks_ltlng <- add_latlong_to_grid(blocks, degree)
+      
+      pal <- brewer.pal(9, "YlOrRd")
+      blocks_ltlng$col <- pal[pmin(floor(log(blocks_ltlng$n)), 9) + 1]
+      maxcol <- max(pmin(floor(log(blocks_ltlng$n)), 9) + 1)
+      
+      blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] <- 
+        blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] - 1000
+      m <- m %>%
+           addRectangles(data = blocks_ltlng, 
+                         lng1=~decimalLongitude-(degree/2), lng2=~decimalLongitude+(degree/2),
+                         lat1=~decimalLatitude-(degree/2), lat2=~decimalLatitude+(degree/2),
+                         fillColor = ~col, fillOpacity = 0.5, stroke = F) %>%
+           addLegend('topleft', colors=pal[1:9],
+                     label=c(1,10,100,1000,10000,100000,1000000,10000000,100000000), title="Number of observations")  
+  } else {
+      blocks <- grid_mytable %>% group_by(block, blockID, species) %>% count() %>% group_by(block, blockID) %>% count()
+      blocks_ltlng <- add_latlong_to_grid(blocks, degree)
+      
+      pal <- brewer.pal(9, "YlOrRd")
+      blocks_ltlng$col <- pal[pmin(blocks_ltlng$nn, 9) + 1]
+      
+      blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] <- 
+        blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] - 1000
+      m <- m %>%
+           addRectangles(data = blocks_ltlng, 
+                         lng1=~decimalLongitude-(degree/2), lng2=~decimalLongitude+(degree/2),
+                         lat1=~decimalLatitude-(degree/2), lat2=~decimalLatitude+(degree/2),
+                         fillColor = ~col, fillOpacity = 0.5, stroke = F) %>%
+           addLegend('topleft', colors=pal[1:min(max(blocks_ltlng$nn), 9)], 
+                     label=1:min(max(blocks_ltlng$nn), 9), title="Number of species")
+  }
   
-  blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] <- 
-    blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] - 1000
-  
-  m <- m %>%
-    addRectangles(data = blocks_ltlng, 
-                  lng1=~decimalLongitude-(degree/2), lng2=~decimalLongitude+(degree/2),
-                  lat1=~decimalLatitude-(degree/2), lat2=~decimalLatitude+(degree/2),
-                  fillColor = ~col, fillOpacity = 0.5, stroke = F) 
   if (!pass) m <- m %>% 
     addProviderTiles(providers$Esri.OceanBasemap) %>%
     onRender(
@@ -267,7 +289,8 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
 
 # -----------------------------------------------------------------------------
 # plot.mcp(atn, numInds, conf)
-# Purpose: Creates a map showing confidence intervals for animal tracking data.
+# Purpose: Creates a map showing minimum convex polygons for home ranges 
+#          derived from animal tracking data.
 # Arguments:
 #     atn contains the input telemetry data
 #     numInds specifies how many individuals will be plotted (max 12)
@@ -275,74 +298,83 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
 #     conf is the confidence interval provided for the kernel density plot. 
 #         Specify as an integer, not a decimal: 95% is 95, not 0.95.
 plot.mcp <- function(atn, numInds, conf) {
+  specs <- unique(atn$species)
+  all_inds <- c()
+  all_specs <- c()
   
-  focalSp <- na.omit(atn)
-  atn$decimalLongitude <- map(atn$decimalLongitude, shift)
+  for (s in 1:length(specs)) {
+    focalSp <- na.omit(atn[atn$species == specs[s],])
+    atn$decimalLongitude <- map(atn$decimalLongitude, shift)
+    
+    cts <- table(focalSp$serialNumber)
+    
+    ## if user selects more individuals than there are in the dataset, return data for all individuals
+    if (length(cts[cts > 5]) >= numInds) {
+      numInds <- numInds
+    } else {
+      numInds <- length(cts[cts > 5])
+    }
+    ## return individuals with most data
+    sequence <- table(focalSp$serialNumber)[order(table(focalSp$serialNumber), decreasing = TRUE)][1:numInds] %>%
+                names() %>%
+                as.numeric()
+    
+    all_inds <- c(all_inds, sequence)
+    all_specs <- c(all_specs, rep(specs[s], length(sequence)))
   
-  cts <- table(focalSp$serialNumber)
-  
-  ## if user selects more individuals than there are in the dataset, return data for all individuals
-  if (length(cts[cts > 5]) >= numInds){
-    numInds <- numInds
-  }else{
-    numInds <- length(cts[cts > 5])
-  }
-  ## return individuals with most data
-  sequence <- table(focalSp$serialNumber)[order(table(focalSp$serialNumber), decreasing = TRUE)][1:numInds] %>%
-              names() %>%
-              as.numeric()
-
-  indiv <- focalSp[focalSp$serialNumber %in% sequence, ]
-  
-  
-  ## calculate MCP per individual, per zone
-  for ( i in sequence ){
-    for ( j in unique(indiv$UTMzone) ){
-      indiv.zone <- indiv[indiv$serialNumber == i & indiv$UTMzone == j ,  ]
-      if (nrow(indiv.zone) >= 5){
-        idsp <- data.frame(indiv.zone$serialNumber)
-        coordinates(idsp) <- cbind(indiv.zone$UTM.east, indiv.zone$UTM.north)
+    indiv <- focalSp[focalSp$serialNumber %in% sequence, ]
+    
+    
+    ## calculate MCP per individual, per zone
+    for ( i in sequence ){
+      for ( j in unique(indiv$UTMzone) ){
+        indiv.zone <- indiv[indiv$serialNumber == i & indiv$UTMzone == j ,  ]
+        if (nrow(indiv.zone) >= 5){
+          idsp <- data.frame(indiv.zone$serialNumber)
+          coordinates(idsp) <- cbind(indiv.zone$UTM.east, indiv.zone$UTM.north)
+          
+          focalSp.mcp <- mcp(idsp, percent = conf, unin = 'm', unout = 'km2')
+          proj4string(focalSp.mcp) <- CRS(paste0("+proj=utm +zone=", j ))
+          mcp_poly <- spTransform(focalSp.mcp, CRS("+proj=longlat +datum=WGS84 +lon_wrap=180")) 
         
-        focalSp.mcp <- mcp(idsp, percent = conf, unin = 'm', unout = 'km2')
-        proj4string(focalSp.mcp) <- CRS(paste0("+proj=utm +zone=", j ))
-        mcp_poly <- spTransform(focalSp.mcp, CRS("+proj=longlat +datum=WGS84 +lon_wrap=180")) 
-      
-        if ( i == sequence[1] ){
-          indivPolys <- mcp_poly
-        } else {
-          indivPolys <- bind(indivPolys, mcp_poly)
+          if ( i == sequence[1] && s == 1 ){
+            indivPolys <- mcp_poly
+          } else {
+            indivPolys <- bind(indivPolys, mcp_poly)
+          }
         }
-      }
-    } 
+      } 
+    }
   }
   
   ## bind them back together by individual and create a poly object to plot
-  for ( k in sequence ){
+  for ( k in all_inds ){
     indivPoly <- aggregate(indivPolys[indivPolys$id == k , ])
     ##indivPoly <- unionSpatialPolygons(indivPolys[indivPolys$id == k , ], IDs = rep(1, sum(indivPolys$id == k)))
     
-    if ( k == sequence[1] ){
+    if ( k == all_inds[1] ){
       polyToPlot <- indivPoly
     }else{
       polyToPlot <- bind(polyToPlot, indivPoly)
     } 
-  } 
+  }
 
-  polyToPlot$id <- sequence
+  polyToPlot$id <- all_inds
   plotNum <- length(polyToPlot)
   print(plotNum)
   
   if (length(sequence) <= 12){
-    pal <- masterpalette[1:numInds]
+    pal <- masterpalette[1:length(all_inds)]
   }else{
     extra <- length(sequence) - 12
-    pal <- c(masterpalette, masterpalette, masterpalette)[1:numInds]
+    pal <- c(masterpalette, masterpalette, masterpalette)[1:length(all_inds)]
   }
   
   return(
     leaflet(polyToPlot) %>% addProviderTiles(providers$Esri.OceanBasemap) %>% 
-    addPolygons(weight = .3, opacity = 1 , color = pal[1:numInds] , fillColor = pal) %>% 
-    addLegend('topleft', colors = pal[1:numInds], labels = sequence,  title = c(unique(focalSp$species))) %>%
+    addPolygons(weight = .3, opacity = 1 , color = pal[1:1:length(all_inds)] , fillColor = pal) %>% 
+    addLegend('topleft', colors = pal[1:length(all_inds)], labels = paste(all_specs, all_inds), 
+              title = "Individuals") %>%
       onRender(
         "function(el, x) {
             L.easyPrint({

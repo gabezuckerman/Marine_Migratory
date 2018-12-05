@@ -136,6 +136,10 @@ server <- shinyServer(function(input, output, session) {
             radioButtons("colorby", "Color by:",
              choices = c("species", "individual"),
              inline = F, selected = "species")
+      } else if (input$maptype == "heat") {
+            radioButtons("colorby", "Color by:",
+             choices = c("Number of species", "Number of observations"),
+             inline = F, selected = "Number of species")
       }
     })
     
@@ -230,19 +234,19 @@ server <- shinyServer(function(input, output, session) {
     input$mapButton,
     output$map <- renderLeaflet({
       if (input$datasource == "ATN") {
-        if (input$maptype == "heat") pacificMapHeatmap(atn)
+        if (input$maptype == "heat") pacificMapHeatmap(atn, cb = input$colorby)
         else if (input$maptype == "point") pacificMapPoints(atn)
         else if (input$maptype == "mcp") plot.mcp(atn, numInds = input$numInds, conf = input$confidence)
         else pacificMapLines(atn, numInds = input$numInds, cb = input$colorby)
       } else if (input$datasource == "OBIS") {
         if (input$maptype == "point") pacificMapPoints(obis)
-        else pacificMapHeatmap(obis)
+        else pacificMapHeatmap(obis, cb = input$colorby)
       } else if (input$datasource == "ATN and OBIS") {
         if (input$maptype == "point") pacificMapPoints(both)
-        else pacificMapHeatmap(both)
+        else pacificMapHeatmap(both, cb = input$colorby)
       }
       else if (input$datasource == "Load in .csv file") {
-        if (input$maptype == "heat") pacificMapHeatmap(customTable)
+        if (input$maptype == "heat") pacificMapHeatmap(customTable, cb = input$colorby)
         else if (input$maptype == "point") pacificMapPoints(customTable)
       }
     })
