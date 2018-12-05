@@ -8,40 +8,223 @@ library(raster)
 library(mapview)
 library(broom)
 library(leaflet)
+library(leaflet.extras)
 library(DT)
 library(resample)
+library(robis)
+library(lubridate)
+library(RColorBrewer)
 
-# load all rasters
-#r <- map(list.files("../../../../Dropbox/ABSK_CWD data/AB_rasters/", full.names = T), raster)
-# r <- r[c(1, 3, 6, 7)]
-# rasters <- stack(map(r, raster::resample, r[[1]]))
-# names(rasters) <- c("AG12", "e_min", "dstRIV", "dStream")
+atn <- NULL
+obis <- NULL
+#get commonNames for OBIS
+getOBISnames <- function() {
+  spec <- read.csv("../DataProcessing/obis_spec_cts_named.csv", stringsAsFactors = F)
+  return(spec$commonName)
+}
+
+# Take a dataframe with columns for decimalLatitude and decimalLongitude and
+#   assign each a block ID based on a grid
+add_grid_to_points <- function(obs_data, degree) {
+  obs_data$block <- (floor(obs_data$decimalLatitude / degree) + 
+                       1000 * floor(obs_data$decimalLongitude / degree)) %>% 
+      as.factor() %>% as.numeric()
+  obs_data$blockID <- floor(obs_data$decimalLatitude / degree) + 
+                       1000 * floor(obs_data$decimalLongitude / degree)
+  return(obs_data)
+}
+
+# Take a dataframe with blockIDs and retrieve the central decimalLatitude and
+#   decimalLongitude for each block
+add_latlong_to_grid <- function(gridsummary, degree) {
+  gridsummary$decimalLatitude <- (gridsummary$blockID %% 1000) * degree + (degree/2)
+  gridsummary$decimalLongitude <- floor(gridsummary$blockID / 1000) * degree + (degree/2)
+  return(gridsummary)
+}
+
+#loading in ATN Data
+loadATN <- function(list_species){
+  atn_data <- read.csv('../atnPacificOnly.csv', stringsAsFactors = F)
+  l <- list()
+  for(i in 1:length(list_species)) {
+    s <- atn_data %>% filter(species == list_species[i])
+    l[[i]] <- s
+  }
+  return(bind_rows(l))
+}
+
+#gets common names for ATN
+getATNnames <- function() {
+  spec <- read.csv("../atnPacificOnlySpecCounts.csv", stringsAsFactors = F)
+  return(spec$species)
+}
+
+# load OBIS data
+loadOBIS <- function(list_of_species) {
+  if (list_of_species == "") {
+    return(NULL)
+  }
+  species_data <- list()
+  spec_names <- read.csv("../DataProcessing/obis_spec_cts_named.csv")
+  for (i in 1:length(list_of_species)) {
+    spec_specified <- list_of_species[[i]]
+    if (toupper(spec_specified) %in% toupper(spec_names$commonName)) {
+      sciname <- spec_names$species[toupper(spec_names$commonName) == toupper(spec_specified)]
+      species_data[[i]] <- occurrence(sciname)
+    } else if (toupper(spec_specified) %in% toupper(spec_names$species)) {
+      sciname <- spec_names$species[toupper(spec_specified) == toupper(spec_names$species)]
+      species_data[[i]] <- occurrence(sciname)
+    } else {
+      print(paste0("Species '", list_of_species[[i]], "' not found"))
+      return(NULL)
+    }
+  }
+  obis <- bind_rows(species_data)
+  obis$decimalLongitude <- as.numeric(obis$decimalLongitude)
+  obis$decimalLongitude <- map(obis$decimalLongitude, shift)
+  return(obis)
+}
+
+#functions that help with keeping only instances in the Pacific Ocean
+inPacific <- function(long, lat) {
+  if (long <= 290 && long >= 280 && lat >= -80 && lat <= 9) {
+    return(TRUE)
+  }
+  else if(long <= 280 && long >= 276 && lat >= -80 && lat <= 9) {
+    return(TRUE)
+  }
+  else if(long <= 276 && long >= 270 && lat >= -80 && lat <= 14) {
+    return(TRUE)
+  }
+  else if(long <= 270 && long >= 260 && lat >= -80 && lat <= 18) {
+    return(TRUE)
+  }
+  else if(long <= 260 && long >= 145 && lat >= -80 && lat <= 66) {
+    return(TRUE)
+  }
+  else if(long <= 145 && long >= 100 && lat >= 0 && lat <= 66) {
+    return(TRUE)
+  }
+  else {
+    return(FALSE)
+  }
+}
+
+shift <- function(longitude) {
+  if (longitude < 0) {
+    return(longitude + 360)
+  }
+  else {
+    return(longitude)
+  }
+}
+
+#need to pre-process atn data
+pacificProcessing<- function(mytable) {
+  #reformats longitude
+  mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
+  mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
+  #keeps rows in pacific determined by lon, lat
+  pacific <- map2(mytable$decimalLongitude, mytable$decimalLatitude, ~inPacific(.x, .y))
+  head(mytable)
+  mytable$inPO <- pacific
+  head(mytable)
+  mytable <- filter(mytable, inPO == TRUE)
+  return(mytable)
+}
+
+#creates a leaflet object from an obis or atn table
+pacificMapPoints <- function(mytable, m = NULL, pass = F) {
+  mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
+  mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
+  if (is.null(m)) m <- leaflet() %>% addTiles()
+  m <- m %>%
+    addCircleMarkers(data = mytable, ~decimalLongitude, ~decimalLatitude, 
+               radius = 3, stroke = F, opacity = 0.2,
+               popup = ~as.character(species),
+               label = ~as.character(species))
+  if (!pass) m <- m %>% 
+                  addProviderTiles(providers$Esri.OceanBasemap) %>%
+                  setView(lng = 180, lat = 0, zoom = 2)
+  return(m)
+}
+
+pacificMapHeatmap <- function(mytable, m = NULL, pass = F) {
+  mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
+  mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
+  
+  if (is.null(m)) m <- leaflet() %>% addTiles()
+  
+  degree <- 1
+  
+  grid_mytable <- add_grid_to_points(mytable, degree)
+  blocks <- grid_mytable %>% group_by(block, blockID) %>% count()
+  blocks_ltlng <- add_latlong_to_grid(blocks, degree)
+  
+  pal <- brewer.pal(9, "YlOrRd")
+  blocks_ltlng$col <- pal[pmin(floor(log(blocks_ltlng$n)), 9) + 1]
+  
+  blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] <- 
+      blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] - 1000
+
+  m <- m %>%
+    addRectangles(data = blocks_ltlng, 
+                  lng1=~decimalLongitude-(degree/2), lng2=~decimalLongitude+(degree/2),
+                  lat1=~decimalLatitude-(degree/2), lat2=~decimalLatitude+(degree/2),
+                  fillColor = ~col, fillOpacity = 0.5, stroke = F)
+  if (!pass) m <- m %>% 
+                  addProviderTiles(providers$Esri.OceanBasemap) %>%
+                  setView(lng = 180, lat = 0, zoom = 2)
+  return(m)
+}
 
 
-#points <- st_read("../../../../Dropbox/ABSK_CWD data/RiskModelUpdate/pts_inextent_UTM12N.shp")
+pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
+  mytable <- mytable %>% arrange(time)
+  
+  mytable$decimalLongitude <- as.numeric(mytable$decimalLongitude)
+  mytable$decimalLatitude <- as.numeric(mytable$decimalLatitude)
+  if (is.null(m)) m <- leaflet(data = mytable) %>% addTiles() 
+  
+  inds <- mytable %>% group_by(serialNumber, species) %>% count() %>% arrange(-n)
+  spec_opts <- unique(inds$species)
+  
+  if (cb == "species") {
+      pal <- c("#663ec4", "#bf3b3b", "#e0a831")
+      for (s in 1:length(spec_opts)) {
+        inds_to_plot <- inds[inds$species == spec_opts[s],]
+        for (i in 1:numInds) {
+          m <- m %>% addPolylines(data = mytable[mytable$serialNumber == 
+                                                   inds_to_plot$serialNumber[i],],
+                                  ~decimalLongitude, ~decimalLatitude, 
+                                  popup = ~as.character(species),
+                                  label = ~as.character(species),
+                                  color = pal[s])
+        }
+      }
+  } else {
+    pallettes <- c("YlGn", "RdPu", "PuBu", "BuPu", "Greys", "Oranges", "Reds")
+    for (s in 1:length(spec_opts)) {
+      pal <- brewer.pal(name = pallettes[s], n = min(numInds, 9))
+      pal <- rev(c(pal, pal))
+      inds_to_plot <- inds[inds$species == spec_opts[s],]
+      for (i in 1:numInds) {
+        m <- m %>% addPolylines(data = mytable[mytable$serialNumber == 
+                                                 inds_to_plot$serialNumber[i],],
+                                ~decimalLongitude, ~decimalLatitude, 
+                                popup = ~as.character(species),
+                                label = ~as.character(species),
+                                color = pal[i])
+      }
+    }
+  }
 
-WMU163_keys <- c(
-  553, 10856, 10859, 10903, 10905, 10939, 10942, 10950, 12349,
-  12567, 13395, 13473, 13927, 15139, 44895, 44898, 44933, 44935,
-  44948
-)
+  m <- m %>% addProviderTiles(providers$Esri.OceanBasemap) %>%
+    setView(lng = 180, lat = 0, zoom = 2)
+  return(m)
+}
 
-variable_list <- list(
-  response = "cwd",
-  global = c("sp", "sex_1", "harv", "time"),
-  dist = c("e_min", "e_aver"),
-  hum = c("Dtown", "Droad", "Road3km", "Road6km", "Road12km"),
-  ter = c("dRiv", "dStrm", "Stream3km", "Stream6km", "Stream12km", "rugg3", "rugg6", "rugg12"),
-  LCV = c(
-    "Pcover3", "Pagri3", "Pgrass3", "Popen3", "Pcover6", "Pagri6", "Pgrass6", "Popen6",
-    "Pcover12", "Ag12", "Pgrass12", "Popen12"
-  ) # ,
-  # soil = c("coarse3", "coarse6", "coarse12", "fine12", "fine3", "fine6", "med12", "med3", "med6")
-)
 
-#pred <- raster("../../../../Dropbox/ABSK_CWD data/RiskModelUpdate/predict_R.tif")
-#WMUs <- st_read("../../../../Dropbox/ABSK_CWD data/RiskModelUpdate/AB_WMUs.shp")
-#rastercol <-  colorRampPalette(c("#49AD3F","#f1F904","#D73027"), bias = 2)(256)
 
 server <- shinyServer(function(input, output, session) {
   
@@ -51,7 +234,6 @@ server <- shinyServer(function(input, output, session) {
     toggle("tab1_sidebar", condition = input$navbar == "tab1_val")
     toggle("tab2_sidebar", condition = input$navbar == "tab2_val")
     toggle("tab3_sidebar", condition = input$navbar == "tab3_val")
-    toggle("tab4_sidebar", condition = input$navbar == "tab4_val")
   })
   
   #starting text on each of the main tabs
@@ -68,281 +250,97 @@ server <- shinyServer(function(input, output, session) {
   })
   
   output$tab2_valuebox <- renderValueBox({
-    box(status = "info", 'To use our exisiting open source data, select species in the next tab.', br(), 'Click Build Regression! to start regression.', br(),
-        'Alternatively, load additional data in the form of a .csv file.', br(),
-        'Be aware extracting environmental covariates to new data may take an hour or more to complete.',
+    box(status = "info", 'Choose data source and select which species you would like download.', br(), 'Please limit to 3 species', br(),
+        'Alternatively, load additional data in the form of a .csv file.',
         solidHeader = TRUE, align = "left"
     )
   })
   
   output$tab3_valuebox <- renderValueBox({
-    box(status = 'info', 'Select which variables to model.', br(),
-        'Click Fit Model! to generate Regression Function and Statistics.', br(),
-        'Once regression is complete, click See Map! to continue to Map')
-  })
-  output$tab4_valuebox <- renderValueBox({
-    box(status = 'info', 'Choose map constants to begin mapping process.')
+    box(status = 'info', 'Choose map type to begin mapping process.', br(), 
+        'You chose the following species:', br(), input$species)
   })
   
   
-  
-  # This function is repsonsible for loading in the selected file
-  #this is the functionality for the second tab
-  filedata <- reactive({
-    infile <- input$datafile
-    if (is.null(infile)) {
-      # User has not uploaded a file yet
-      return(NULL)
+  output$datasource <- renderUI({
+    if(input$datasource == "ATN") {
+      selectInput("species", "Species (ATN)",
+                  choices = c(
+                    `Select One or More` = "",
+                   getATNnames()
+                  ), multiple = TRUE)
     }
-    read_csv(infile$datapath)
+    else if(input$datasource == "OBIS") {
+      actionButton("loadOBIS", "Load")
+      selectInput("species", "Species (OBIS)",
+                  choices = c(
+                    `Select One or More` = "",
+                    getOBISnames()
+                  ), multiple = TRUE)
+    }
+    
+    else if(input$datasource == "Both") {
+      actionButton("loadBoth", "Load")
+      selectInput("species", "Species (OBIS and ATN)",
+                  choices = c(
+                    `Select One or More` = "",
+                    getATNnames()
+                  ), multiple = TRUE)
+    }
   })
   
-  # This previews the CSV data file
-  output$filetable <- renderDataTable({
-    DT::datatable(filedata(), options = list(scrollX = TRUE))
-  })
-  
-  # identify year, sex, sp, cwd, and harvest columns
-  output$sexcol <- renderUI({
-    df <- filedata()
-    if (is.null(df)) return(NULL)
-    if (input$new == "yes") return(NULL)
     
-    items <- names(df)
-    names(items) <- items
-    selectInput("sex", "Sex Column (0/1):", items)
-  })
-  output$harvcol <- renderUI({
-    df <- filedata()
-    if (is.null(df)) return(NULL)
-    if (input$new == "yes") return(NULL)
-    
-    items <- names(df)
-    names(items) <- items
-    selectInput("harv", "Harvest Method Column (0/1):", items)
-  })
-  output$spcol <- renderUI({
-    df <- filedata()
-    if (is.null(df)) return(NULL)
-    if (input$new == "yes") return(NULL)
-    
-    items <- names(df)
-    names(items) <- items
-    selectInput("sp", "Species Column (0/1):", items)
-  })
-  output$datecol <- renderUI({
-    df <- filedata()
-    if (is.null(df)) return(NULL)
-    if (input$new == "yes") return(NULL)
-    
-    items <- names(df)
-    names(items) <- items
-    selectInput("date", "Date Column", items)
-  })
-  output$latcol <- renderUI({
-    df <- filedata()
-    if (is.null(df)) return(NULL)
-    
-    items <- names(df)
-    names(items) <- items
-    selectInput("lat", "Easting (UTM 12N NAD83)", items)
-  })
-  output$longcol <- renderUI({
-    df <- filedata()
-    if (is.null(df)) return(NULL)
-    
-    items <- names(df)
-    names(items) <- items
-    selectInput("long", "Northing (UTM 12N NAD83)", items)
-  })
-  
-  #Loading sidebar functionality ie Tab 2
-  output$button <- renderUI({
-    df <- filedata()
-    if (is.null(df)) return(NULL)
-    if (input$new == "yes") return(NULL)
-    actionButton("modelbutton", "Build Regression!")
-  })
-  
-  # on click of "Build Regression!"
-  shinyjs::onclick('modelbutton',expr={
-    # move to Regression Results
-    updateTabsetPanel(session, "navbar", 'tab3_val')
-  })
-  
-  #extraction--needs work!
-  output$extract <- renderUI({
-    df <- filedata()
-    if (is.null(df)) return(NULL)
-    if (input$new == "no") return(NULL)
-    
-    selectInput("extract", "Variables to Extract", variable_list[3:6],
-                multiple = T, selected = c("e_min", "Pagri12", "Driver", "Dstreams")
+    observeEvent(
+      input$loadData, 
+      if(input$datasource == "OBIS") {
+        obis <<- pacificProcessing(loadOBIS(input$species))
+        output$OBISTable <- renderDataTable(obis, options = list(scrollX = TRUE))
+      }
+      else if(input$datasource == "ATN") {
+        atn <<- loadATN(input$species)
+        output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
+      }
+      else if(input$datasource == "Both") {
+        atn <<- loadATN(input$species)
+        obis <<- loadOBIS(input$species)
+        output$ATNTable <- renderDataTable(atn, options = list(scrollX = TRUE))
+      }
+
     )
-  })
   
-  output$extractbutton <- renderUI({
-    df <- filedata()
-    if (is.null(df)) return(NULL)
-    if (input$new == "no") return(NULL)
-    actionButton("extractButton", "Extract Variables!")
-  })
   
-  output$download <- renderUI({
-    if (input$new == "no") return(NULL)
-    downloadButton("download", "Download data with extracted values")
-  })
   
-  text <- eventReactive(
-    input$extractButton,
-    "Extracting Environmental Variables... this may take a while..."
+  observeEvent(
+    input$mapButton,
+    output$map <- renderLeaflet({
+      if (input$datasource == "ATN") {
+        if (input$maptype == "heat") pacificMapHeatmap(atn)
+        else if (input$maptype == "point") pacificMapPoints(atn)
+        else pacificMapLines(atn, numInds = input$numInds, cb = input$colorby)
+      } else if (input$datasource == "OBIS") {
+        if (input$maptype == "point") pacificMapPoints(obis)
+        else pacificMapHeatmap(obis)
+      } else if (input$datasource == "Both") {
+          pacificMapLines(atn, numInds = input$numInds, cb = input$colorby,
+                        m = pacificMapHeatmap(obis, pass = T))
+      }
+    })
   )
-  
-  output$text <- renderText({
-    text()
-    progress <- Progress$new(session, min = 1, max = 30)
-    on.exit(progress$close())
-    
-    progress$set(
-      message = "Calculation in progress",
-      detail = "Table will reload when complete."
-    )
-    
-    # dummy progress
-    for (i in 1:30) {
-      progress$set(value = i)
-      Sys.sleep(0.5)
-    }
-  })
-  
-  #Regression Functionality ie Tab 3
-  regressioncall <- eventReactive(input$goButton, {
-    as.formula(paste(
-      "cwd ~",
-      paste(c(
-        glue_collapse(input$Glob_Input, " + "),
-        input$Dist_Input,
-        glue_collapse(input$Hum_Input, " + "),
-        glue_collapse(input$Ter_Input, " + "),
-        input$LCV_Input),
-        collapse = " + "
-      ), "+", input$interaction
-    ))
-  })
-  
-  #need to change so it uses loaded in data instead of "points"
-  logit <- reactive({
-    glm(regressioncall(), data = filter(points, !(key %in% WMU163_keys)), family = binomial(link = "logit"))
-  })
-  
-  
-  output$setup <-renderText({
-    'Regression Function:'
-  })
-  
-  output$setup2 <- renderText({
-    'Regression Statistics:'
-  })
-  output$call <- renderPrint({
-    regressioncall()
-  })
-  
-  
-  output$summary <- renderDataTable({
-    DT::datatable(broom::tidy(logit()))
-  })
-  
-  output$toMap <- renderUI({
-    if (is.null(logit())) return(NULL)
-    actionButton("toMap", "See Map!")
-  })
-  
-  shinyjs::onclick('toMap',expr={
-    # move to Map Results
-    updateTabsetPanel(session, "navbar", 'tab4_val')
-  })
-  
-  
-  #MAP tab ie tab 4
-  
-  # predictions <- reactive(exp(
-  #   raster::predict(
-  #     object = rasters,
-  #     model = logit(),
-  #     fun = predict,
-  #     const = data.frame(
-  #       time = (input$maptime - 2001),
-  #       sex_1 = as.numeric(input$mapsex),
-  #       harv = 1,
-  #       sp = as.numeric(input$mapsp)
-  #     )
-  #   )
-  # ))
-  # main <- reactive(
-  #   paste(
-  #     "CWD Risk", (input$maptime),
-  #     ifelse(input$mapsex == "1", "Male", "Female"),
-  #     ifelse(input$mapsp == "1", "Mule Deer", "White-Tailed Deer"), sep = "_"
-  #   )
-  # )
-  
-  
-  # cannot work reactively right now, so just displaying map with WMUs layer
-  #m <- mapview::mapview(st_geometry(WMUs), layer.name = "WMUs") #+
-  #mapview::mapview(pred, col.regions = rastercol, layer.name = "Predicted Risk") #+
-  #mapview::mapview(filter(points, cwd == 1), layer.name = "Positives")
-  
-  
-  # m <- m + mapview::mapview(pred, col.regions = rastercol)
-  
-  # observeEvent(
-  #   input$mapButton,
-  #output$map <- leaflet::renderLeaflet({m@map})
-  # )
-  
-  # output$map <- renderPlot({
-  #   pred <- data.frame(rasterToPoints(predictions()))
-  #   colnames(pred) <- c("X", "Y", "risk")
-  #   pred$cut <- Hmisc::cut2(x = pred$risk,
-  #                    cuts = signif(seq(range(pred$risk, na.rm = T)[1],
-  #                                      range(pred$risk, na.rm = T)[2],
-  #                                      length.out = 10), 3))
-  #
-  #   ggplot() +
-  #     geom_sf(data = WMUs, aes(), colour = "#63636380", fill = "#fff7ec") +
-  #     # add geom_sf_text() for label once updated on github
-  #     geom_raster(data = pred, aes(X, Y, fill = cut)) +
-  #     scale_fill_manual(values = gradient, name = "CWD risk") +
-  #     geom_sf(data = rivers, aes(), colour = "#4eb3d360") +
-  #     labs(x = "", y = "", title = main())
-  #   })
-  #
-  
-  # output$downloadMap <- renderUI({
-  #   if (input$mapButton == 0) return(NULL)
-  #   downloadButton("downloadMap", "Download Prediction Raster")
-  # })
   
   #downloads created map, not reacitve
-  output$downloadMap <- downloadHandler(
-    filename = function() { paste0(main(),'.tif') },
-    #predictions() not a thing yet, so cannot save it
-    content = function(file) {
-      raster::writeRaster(pred, file)
-    }
-  )
-  
-  # observeEvent(
-  #   input$downloadMap,
-  #   downloadHandler(
-  #     filename = function() { paste0(main(),'.tif') },
-  #     content = function(file) {
-  #       raster::writeRaster(predictions(), file)
-  #     }
-  #   )
+  # output$downloadMap <- downloadHandler(
+  #   filename = function() { paste0(main(),'.tif') },
+  #   #predictions() not a thing yet, so cannot save it
+  #   content = function(file) {
+  #     raster::writeRaster(pred, file)
+  #   }
   # )
-  
-  # output$risk <- renderImage({
-  #  list(src = "../OriginalRiskMap.png", height = "600", width = "400")
-  # }, deleteFile = FALSE)
 })
+
+### TODO
+# Ben:
+  # Plot both OBIS and ATN at the same time
+# Gabe:
+  # Get everything in one pane
+# Erin:
+  # Get kernel density and BBMM into app (or give to Gabe to pu into app)

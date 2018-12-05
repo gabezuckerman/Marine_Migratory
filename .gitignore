@@ -3,5 +3,5 @@
 .RData
 .Ruserdata
 /MMA_Data
+.httr-oauth
 .DS_Store
-
