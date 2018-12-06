@@ -125,7 +125,7 @@ server <- shinyServer(function(input, output, session) {
     
     output$confidence <- renderUI({
       if (input$datasource == "ATN" && input$maptype == "mcp") {
-        sliderInput("confidence", "Confidence Interval Percentage",
+        sliderInput("confidence", HTML("Percent of Data to Include<br/>Data not included treated as outliers"),
                     min = 1, max = 100,
                     value = 95)
       }
