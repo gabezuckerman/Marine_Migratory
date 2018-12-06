@@ -147,7 +147,7 @@ server <- shinyServer(function(input, output, session) {
       if((input$datasource == "ATN") && (input$maptype == "traj" || input$maptype == "mcp")) {
         sliderInput("numInds", "Num. individuals per species",
                     min = 1, max = 12,
-                    value = 2)
+                    value = 1)
       }
     })
 
