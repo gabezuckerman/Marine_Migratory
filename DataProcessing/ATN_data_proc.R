@@ -93,8 +93,8 @@ plot_species_atn <- function(atn_data = NULL, species_name,
 #-------------END Function definitions-------------#
 
 # Read in ATN data
-atn_data <- read.csv('all_ATN.csv', stringsAsFactors = F)[-1,]
-atn_species_counts <- atn_data %>% group_by(commonName) %>% count() %>% arrange(-n)
+atn_data <- read.csv('all_ATN.csv', stringsAsFactors = F)
+atn_species_counts <- read.csv("ATN_spec_cts.csv")
 
 # Plot species with top n most points
 atn_species_counts <- atn_species_counts %>% arrange(-n)

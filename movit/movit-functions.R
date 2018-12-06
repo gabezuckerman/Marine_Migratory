@@ -152,8 +152,8 @@ pacificMapHeatmap <- function(mytable, m = NULL, cb = "Number of observations", 
       blocks_ltlng <- add_latlong_to_grid(blocks, degree)
       
       pal <- brewer.pal(9, "YlOrRd")
-      blocks_ltlng$col <- pal[pmin(floor(log(blocks_ltlng$n)), 9) + 1]
-      maxcol <- max(pmin(floor(log(blocks_ltlng$n)), 9) + 1)
+      blocks_ltlng$col <- pal[pmin(floor(log10(blocks_ltlng$n)), 9) + 1]
+      maxcol <- max(pmin(floor(log10(blocks_ltlng$n)), 9) + 1)
       
       blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] <- 
         blocks_ltlng$decimalLatitude[blocks_ltlng$decimalLatitude > 100] - 1000
@@ -245,13 +245,16 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
     }
     m <- m %>% addLegend('topleft', colors=pal[1:length(spec_opts)], label=spec_opts, title="Species")
   } else {
+    allinds <- c()
+    allspecs <- c()
     pallettes <- c("PuBu", "Oranges", "BuPu", "YlGn", "Greys", "Reds", "RdPu")
     for (s in 1:length(spec_opts)) {
-      pal <- brewer.pal(name = pallettes[s], n = min(numInds, 9))
-      pal <- rev(c(pal, pal))
+      pal <- c(masterpalette, masterpalette, masterpalette)
       inds_to_plot <- inds[inds$species == spec_opts[s],]
       for (i in 1:numInds) {
         species <- mytable[mytable$serialNumber == inds_to_plot$serialNumber[i],c("species")][1]
+        allinds <- c(allinds, inds_to_plot$serialNumber[i])
+        allspecs <- c(allspecs, species)
         myline <- Line(mytable[mytable$serialNumber == inds_to_plot$serialNumber[i],
                                c("decimalLatitude", "decimalLongitude")])
         myline <- SpatialLines(list(Lines(list(Line(myline)), "id")))
@@ -271,6 +274,7 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
                                 color = pal[i])
       }
     }
+    m <- m %>% addLegend('topleft', colors=pal[1:length(allinds)], label=paste(allinds, allspecs), title="Species")
   }
   
   m <- m %>% addProviderTiles(providers$Esri.OceanBasemap) %>%
@@ -297,12 +301,15 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
 #     cb refers to "color by". Can be "species" or "individual".
 #     conf is the confidence interval provided for the kernel density plot. 
 #         Specify as an integer, not a decimal: 95% is 95, not 0.95.
-plot.mcp <- function(atn, numInds, conf) {
+plot.mcp <- function(atn, numInds, conf, cb = "species") {
+  numIndsMaster <- numInds
   specs <- unique(atn$species)
   all_inds <- c()
   all_specs <- c()
+  inds_per_spec <- c()
   
   for (s in 1:length(specs)) {
+    numInds <- numIndsMaster
     focalSp <- na.omit(atn[atn$species == specs[s],])
     atn$decimalLongitude <- map(atn$decimalLongitude, shift)
     
@@ -314,6 +321,7 @@ plot.mcp <- function(atn, numInds, conf) {
     } else {
       numInds <- length(cts[cts > 5])
     }
+    inds_per_spec <- c(inds_per_spec, numInds)
     ## return individuals with most data
     sequence <- table(focalSp$serialNumber)[order(table(focalSp$serialNumber), decreasing = TRUE)][1:numInds] %>%
                 names() %>%
@@ -363,29 +371,58 @@ plot.mcp <- function(atn, numInds, conf) {
   plotNum <- length(polyToPlot)
   print(plotNum)
   
-  if (length(sequence) <= 12){
-    pal <- masterpalette[1:length(all_inds)]
-  }else{
-    extra <- length(sequence) - 12
-    pal <- c(masterpalette, masterpalette, masterpalette)[1:length(all_inds)]
-  }
   
-  return(
-    leaflet(polyToPlot) %>% addProviderTiles(providers$Esri.OceanBasemap) %>% 
-    addPolygons(weight = .3, opacity = 1 , color = pal[1:1:length(all_inds)] , fillColor = pal) %>% 
-    addLegend('topleft', colors = pal[1:length(all_inds)], labels = paste(all_specs, all_inds), 
-              title = "Individuals") %>%
-      onRender(
-        "function(el, x) {
-            L.easyPrint({
-              sizeModes: ['A4Landscape', 'A4Portrait'],
-              filename: 'MOViTmap',
-              exportOnly: true,
-              hideControlContainer: false
-            }).addTo(this);
-            }"
-      )
-  )
+  if (cb == 'individual') {
+    if (length(all_inds) <= 12){
+      pal <- masterpalette[1:length(all_inds)]
+    }else{
+      extra <- length(all_inds) - 12
+      pal <- c(masterpalette, masterpalette, masterpalette)[1:length(all_inds)]
+    }
+
+    
+    return(
+      leaflet(polyToPlot) %>% addProviderTiles(providers$Esri.OceanBasemap) %>% 
+      addPolygons(weight = .3, opacity = 1 , color = pal[1:length(all_inds)], 
+                  fillColor = pal, popup = paste(all_specs, all_inds)) %>% 
+      addLegend('topleft', colors = pal[1:length(all_inds)], labels = paste(all_specs, all_inds), 
+                title = "Individuals") %>%
+        onRender(
+          "function(el, x) {
+              L.easyPrint({
+                sizeModes: ['A4Landscape', 'A4Portrait'],
+                filename: 'MOViTmap',
+                exportOnly: true,
+                hideControlContainer: false
+              }).addTo(this);
+              }"
+        )
+    )
+  } else {
+
+    pal <- c()
+    for (i in 1:length(specs)) {
+      pal <- c(pal, rep_len(masterpalette[i], inds_per_spec[i]))
+    }
+
+    return(
+      leaflet(polyToPlot) %>% addProviderTiles(providers$Esri.OceanBasemap) %>% 
+      addPolygons(weight = .3, opacity = 1 , color = pal[1:length(specs)], 
+                  fillColor = pal, popup = paste(all_specs, all_inds)) %>% 
+      addLegend('topleft', colors = pal[1:length(all_inds)], labels = paste(all_specs, all_inds), 
+                title = "Individuals") %>%
+        onRender(
+          "function(el, x) {
+              L.easyPrint({
+                sizeModes: ['A4Landscape', 'A4Portrait'],
+                filename: 'MOViTmap',
+                exportOnly: true,
+                hideControlContainer: false
+              }).addTo(this);
+              }"
+        )
+    )
+  }
 }
 
 # -----------------------------------------------------------------------------

@@ -6,7 +6,6 @@ library(robis)
 library(ggplot2)
 library(mapdata)
 
-#setwd('/home/ben/Desktop/MMA_Data/OBIS/')
 
 
 plot.map<- function(database,center,...){
@@ -72,6 +71,7 @@ plot_species_obis <- function(sci_name = NULL, common_name = NULL,
 #             )
 # chords <- all_data[all_data$phylum == "Chordata",]
 # 
+
 # obis_spec_cts <- chords %>% filter(species != "") %>% group_by(species) %>% count() %>% arrange(-n)
 # 
 # 
