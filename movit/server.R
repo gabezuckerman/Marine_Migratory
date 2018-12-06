@@ -140,6 +140,10 @@ server <- shinyServer(function(input, output, session) {
             radioButtons("colorby", "Color by:",
              choices = c("Number of species", "Number of observations"),
              inline = F, selected = "Number of species")
+      } else if (input$maptype == "mcp") {
+            radioButtons("colorby", "Color by:",
+             choices = c("species", "individual"),
+             inline = F, selected = "species")
       }
     })
     
@@ -236,7 +240,7 @@ server <- shinyServer(function(input, output, session) {
       if (input$datasource == "ATN") {
         if (input$maptype == "heat") pacificMapHeatmap(atn, cb = input$colorby)
         else if (input$maptype == "point") pacificMapPoints(atn)
-        else if (input$maptype == "mcp") plot.mcp(atn, numInds = input$numInds, conf = input$confidence)
+        else if (input$maptype == "mcp") plot.mcp(atn, numInds = input$numInds, conf = input$confidence, cb = input$colorby)
         else pacificMapLines(atn, numInds = input$numInds, cb = input$colorby)
       } else if (input$datasource == "OBIS") {
         if (input$maptype == "point") pacificMapPoints(obis)
