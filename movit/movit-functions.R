@@ -245,13 +245,16 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
     }
     m <- m %>% addLegend('topleft', colors=pal[1:length(spec_opts)], label=spec_opts, title="Species")
   } else {
+    allinds <- c()
+    allspecs <- c()
     pallettes <- c("PuBu", "Oranges", "BuPu", "YlGn", "Greys", "Reds", "RdPu")
     for (s in 1:length(spec_opts)) {
-      pal <- brewer.pal(name = pallettes[s], n = min(numInds, 9))
-      pal <- rev(c(pal, pal))
+      pal <- c(masterpalette, masterpalette, masterpalette)
       inds_to_plot <- inds[inds$species == spec_opts[s],]
       for (i in 1:numInds) {
         species <- mytable[mytable$serialNumber == inds_to_plot$serialNumber[i],c("species")][1]
+        allinds <- c(allinds, inds_to_plot$serialNumber[i])
+        allspecs <- c(allspecs, species)
         myline <- Line(mytable[mytable$serialNumber == inds_to_plot$serialNumber[i],
                                c("decimalLatitude", "decimalLongitude")])
         myline <- SpatialLines(list(Lines(list(Line(myline)), "id")))
@@ -271,6 +274,7 @@ pacificMapLines <- function(mytable, numInds = 5, cb = "species", m = NULL) {
                                 color = pal[i])
       }
     }
+    m <- m %>% addLegend('topleft', colors=pal[1:length(allinds)], label=paste(allinds, allspecs), title="Species")
   }
   
   m <- m %>% addProviderTiles(providers$Esri.OceanBasemap) %>%
