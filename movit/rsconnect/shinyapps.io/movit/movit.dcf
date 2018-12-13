@@ -5,6 +5,6 @@ account: movit
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 591266
-bundleId: 1743970
+bundleId: 1746541
 url: https://movit.shinyapps.io/movit/
-when: 1544048089.27584
+when: 1544126798.90015
